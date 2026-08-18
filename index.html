@@ -8,6 +8,8 @@
   @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap');
 
   :root{
+    font-size:17.5px;
+
     /* Ink & surfaces — cool graphite neutrals, no green cast */
     --ink:#12161c;
     --ink-soft:#5b6570;
@@ -1711,15 +1713,15 @@ function renderPreviewChart(){
     const v = minY + (rangeY * t/ticks);
     const y = yFor(v);
     gridSvg += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${w-padR}" y2="${y.toFixed(1)}" stroke="#e5e5e5" stroke-width="1"/>`;
-    gridSvg += `<text x="${padL-8}" y="${(y+4).toFixed(1)}" font-size="10" fill="#888" text-anchor="end">${v.toFixed(2)}</text>`;
+    gridSvg += `<text x="${padL-8}" y="${(y+4).toFixed(1)}" font-size="11" fill="#888" text-anchor="end">${v.toFixed(2)}</text>`;
   }
 
   const svg = `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
     ${gridSvg}
     <path d="${d}" fill="none" stroke="#a6291f" stroke-width="1.5"/>
-    <text x="${padL}" y="${h-6}" font-size="10" fill="#888">sample 0</text>
-    <text x="${w-padR}" y="${h-6}" font-size="10" fill="#888" text-anchor="end">sample ${n-1}</text>
-    <text x="${w/2}" y="12" font-size="11" fill="#1c1c1e" text-anchor="middle" font-weight="600">${col}</text>
+    <text x="${padL}" y="${h-6}" font-size="11" fill="#888">sample 0</text>
+    <text x="${w-padR}" y="${h-6}" font-size="11" fill="#888" text-anchor="end">sample ${n-1}</text>
+    <text x="${w/2}" y="12" font-size="12" fill="#1c1c1e" text-anchor="middle" font-weight="600">${col}</text>
   </svg>`;
   document.getElementById('previewChartContainer').innerHTML = svg;
 }
