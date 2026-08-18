@@ -5,178 +5,265 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>IMU/ Machine Learning Code Builder — SPH20011</title>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap');
+
   :root{
-    --swin-red:#e2001a;
-    --swin-red-dark:#a8000f;
-    --ink:#1c1c1e;
-    --ink-soft:#4a4a4d;
-    --line:#dfe0e3;
+    /* Ink & surfaces — cool graphite neutrals, no green cast */
+    --ink:#12161c;
+    --ink-soft:#5b6570;
+    --ink-faint:#8b93a0;
+    --paper:#eef0f3;
+    --surface:#ffffff;
+    --line:#dde1e6;
+    --line-strong:#c2c8d1;
+
+    /* Signal (primary) — confident brick-red, and Pulse (secondary) — warm brass ochre */
+    --swin-red:#a6291f;
+    --swin-red-dark:#7a1d15;
+    --accent-bg:#f7e4e1;
+    --pulse:#c6901e;
+    --pulse-tint:#f8f0dc;
+    --ok:#2e8b57;
     --panel:#ffffff;
-    --bg:#f4f5f7;
-    --accent-bg:#fdeceD;
-    --ok:#1f8a4c;
-    --mono:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
+    --bg:#eef0f3;
+
+    --mono:'SFMono-Regular',Menlo,Consolas,'Liberation Mono',monospace;
+    --display:'Space Grotesk',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --radius:10px;
+    --radius-sm:7px;
+    --shadow-card:0 1px 2px rgba(18,22,28,.05), 0 10px 28px -18px rgba(18,22,28,.22);
   }
   *{box-sizing:border-box;}
+  ::selection{background:var(--swin-red); color:#fff;}
   body{
     margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    background:var(--bg); color:var(--ink); line-height:1.5;
+    background:
+      radial-gradient(circle, rgba(166,41,31,.07) 1px, transparent 1px) 0 0/22px 22px,
+      var(--bg);
+    color:var(--ink); line-height:1.5;
   }
+  :focus-visible{outline:2px solid var(--swin-red); outline-offset:2px; border-radius:4px;}
+
   header{
-    background:linear-gradient(135deg,var(--swin-red),var(--swin-red-dark));
-    color:#fff; padding:28px 24px;
+    position:relative; overflow:hidden;
+    background:linear-gradient(160deg,var(--ink) 0%,#1a2129 60%,var(--swin-red-dark) 150%);
+    color:#fff; padding:36px 24px 30px;
   }
-  header h1{margin:0 0 6px 0; font-size:1.5rem;}
-  header p{margin:0; opacity:.92; font-size:.95rem; max-width:900px;}
+  header .eyebrow{
+    font-family:var(--mono); font-size:.72rem; letter-spacing:.14em; text-transform:uppercase;
+    color:#f1a79e; margin:0 0 10px 0; display:flex; align-items:center; gap:8px;
+  }
+  header .eyebrow::before{
+    content:''; width:7px; height:7px; border-radius:50%; background:#ff6b52;
+    box-shadow:0 0 0 3px rgba(255,107,82,.28);
+  }
+  header h1{
+    margin:0 0 8px 0; font-family:var(--display); font-weight:600; font-size:1.7rem;
+    letter-spacing:-.01em;
+  }
+  header p{margin:0; opacity:.82; font-size:.95rem; max-width:900px; position:relative; z-index:1;}
+  header .trace{
+    position:absolute; left:0; right:0; bottom:-2px; width:100%; height:54px;
+    opacity:.55; pointer-events:none;
+  }
+  header .trace path{
+    fill:none; stroke:#ff6b52; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round;
+    stroke-dasharray:900; stroke-dashoffset:900; animation:trace-draw 2.6s ease-out forwards .2s;
+  }
+  @keyframes trace-draw{ to{ stroke-dashoffset:0; } }
+  @media (prefers-reduced-motion: reduce){
+    header .trace path{animation:none; stroke-dashoffset:0;}
+  }
+
   .wrap{max-width:1200px; margin:0 auto; padding:24px;}
   .grid{
     display:grid; grid-template-columns: 1fr 1fr; gap:20px;
   }
-  @media (max-width:900px){ .grid{grid-template-columns:1fr;} }
+  @media (max-width:900px){ .grid{grid-template-columns:1fr;} .wrap{padding:16px;} header{padding:28px 16px 24px;} }
+
   .card{
-    background:var(--panel); border:1px solid var(--line); border-radius:10px;
-    padding:18px 20px; margin-bottom:20px;
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    padding:20px 22px; margin-bottom:20px; box-shadow:var(--shadow-card);
   }
   .card h2{
-    font-size:1.02rem; margin:0 0 4px 0; display:flex; align-items:center; gap:8px;
+    font-family:var(--display); font-weight:600; letter-spacing:-.005em;
+    font-size:1.05rem; margin:0 0 4px 0; display:flex; align-items:center; gap:10px;
   }
   .card .step-num{
-    background:var(--swin-red); color:#fff; width:22px; height:22px; border-radius:50%;
-    display:inline-flex; align-items:center; justify-content:center; font-size:.75rem; flex-shrink:0;
+    background:var(--ink); color:#f1a79e; width:26px; height:26px; border-radius:7px;
+    display:inline-flex; align-items:center; justify-content:center; font-size:.72rem; flex-shrink:0;
+    font-family:var(--mono); font-weight:700;
   }
   .card .sub{color:var(--ink-soft); font-size:.85rem; margin:0 0 14px 0;}
   fieldset{border:none; padding:0; margin:0 0 12px 0;}
-  legend{font-weight:600; font-size:.85rem; margin-bottom:6px; padding:0;}
-  label.opt{
-    display:flex; align-items:flex-start; gap:8px; padding:6px 8px; border-radius:6px;
-    font-size:.88rem; cursor:pointer; border:1px solid transparent;
+  legend{
+    font-family:var(--mono); font-weight:700; font-size:.72rem; letter-spacing:.06em;
+    text-transform:uppercase; color:var(--ink-soft); margin-bottom:8px; padding:0;
   }
-  label.opt:hover{background:var(--accent-bg);}
-  label.opt input{margin-top:3px;}
+  label.opt{
+    display:flex; align-items:flex-start; gap:8px; padding:6px 8px; border-radius:var(--radius-sm);
+    font-size:.88rem; cursor:pointer; border:1px solid transparent; transition:background .12s, border-color .12s;
+  }
+  label.opt:hover{background:var(--accent-bg); border-color:var(--line);}
+  label.opt input{margin-top:3px; accent-color:var(--swin-red);}
   .row{display:flex; gap:12px; flex-wrap:wrap; align-items:center;}
   .row > div{flex:1; min-width:160px;}
   input[type=number], input[type=text], select{
-    width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:.88rem;
-    font-family:inherit; background:#fff;
+    width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:var(--radius-sm); font-size:.88rem;
+    font-family:inherit; background:#fff; color:var(--ink); transition:border-color .12s, box-shadow .12s;
+  }
+  input[type=number]:hover, input[type=text]:hover, select:hover{border-color:var(--line-strong);}
+  input[type=number]:focus, input[type=text]:focus, select:focus{
+    border-color:var(--swin-red); box-shadow:0 0 0 3px var(--accent-bg); outline:none;
   }
   select{cursor:pointer;}
   small.hint{display:block; color:var(--ink-soft); font-size:.78rem; margin-top:4px;}
-  .radio-tabs{display:flex; gap:10px; margin-bottom:14px;}
+  code{
+    font-family:var(--mono); font-size:.86em; background:var(--accent-bg); color:var(--swin-red-dark);
+    padding:1px 5px; border-radius:4px;
+  }
+
+  .radio-tabs{display:flex; gap:6px; margin-bottom:14px; background:var(--paper); padding:4px; border-radius:var(--radius-sm); border:1px solid var(--line);}
   .radio-tabs label{
-    flex:1; text-align:center; padding:12px; border:2px solid var(--line); border-radius:8px;
-    cursor:pointer; font-weight:600; font-size:.88rem; transition:.15s;
+    flex:1; text-align:center; padding:10px 12px; border:1px solid transparent; border-radius:5px;
+    cursor:pointer; font-weight:600; font-size:.86rem; transition:.15s; color:var(--ink-soft);
   }
   .radio-tabs input{display:none;}
   .radio-tabs label:has(input:checked){
-    border-color:var(--swin-red); background:var(--accent-bg); color:var(--swin-red-dark);
+    border-color:var(--line); background:var(--surface); color:var(--swin-red-dark);
+    box-shadow:0 1px 2px rgba(18,22,28,.08);
   }
   .approach-panel{display:none;}
   .approach-panel.active{display:block;}
   .chip-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:4px 10px;}
   .class-names{display:flex; flex-direction:column; gap:6px; margin-top:8px;}
   .split-readout{
-    display:flex; justify-content:space-between; font-size:.82rem; color:var(--ink-soft); margin-top:4px;
+    display:flex; justify-content:space-between; font-family:var(--mono); font-size:.78rem; color:var(--ink-soft); margin-top:6px;
   }
-  input[type=range]{width:100%; accent-color:var(--swin-red);}
+  input[type=range]{width:100%; accent-color:var(--swin-red); height:4px;}
   .feature-count{
-    background:var(--accent-bg); border:1px solid #f3c7c7; border-radius:6px; padding:8px 12px;
-    font-size:.85rem; margin-top:10px; color:var(--swin-red-dark); font-weight:600;
+    background:var(--accent-bg); border:1px solid #f0c9c3; border-radius:var(--radius-sm); padding:9px 13px;
+    font-size:.83rem; margin-top:10px; color:var(--swin-red-dark); font-weight:600;
+    font-family:var(--mono);
   }
+
   .generate-bar{
     position:sticky; bottom:0; background:var(--panel); border-top:1px solid var(--line);
-    padding:14px 20px; display:flex; gap:12px; align-items:center; justify-content:flex-end;
-    margin-top:4px; border-radius:10px; box-shadow:0 -4px 12px rgba(0,0,0,.04);
+    padding:16px 22px; display:flex; gap:12px; align-items:center; justify-content:flex-end;
+    margin-top:4px; border-radius:var(--radius); box-shadow:0 -6px 20px -8px rgba(18,22,28,.14);
   }
   button{
-    font-family:inherit; font-size:.9rem; font-weight:600; padding:10px 18px; border-radius:7px;
-    border:1px solid var(--swin-red); cursor:pointer; transition:.15s;
+    font-family:inherit; font-size:.86rem; font-weight:600; padding:10px 18px; border-radius:var(--radius-sm);
+    border:1px solid var(--swin-red); cursor:pointer; transition:.14s ease;
   }
-  .btn-primary{background:var(--swin-red); color:#fff;}
-  .btn-primary:hover{background:var(--swin-red-dark);}
-  .btn-secondary{background:#fff; color:var(--swin-red); border:1px solid var(--line);}
-  .btn-secondary:hover{border-color:var(--swin-red);}
+  button:active{transform:translateY(1px);}
+  .btn-primary{background:var(--ink); color:#fff; border-color:var(--ink); position:relative;}
+  .btn-primary:hover{background:#050708; box-shadow:0 0 0 3px var(--accent-bg);}
+  .btn-secondary{background:#fff; color:var(--swin-red-dark); border:1px solid var(--line);}
+  .btn-secondary:hover{border-color:var(--swin-red); background:var(--accent-bg);}
+  .icon-btn{display:inline-flex; align-items:center; gap:8px;}
+  .icon-btn svg{flex-shrink:0;}
+
   #outputSection{display:none;}
   .output-head{
     display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;
   }
   pre{
-    background:#1e1e1e; color:#dcdcdc; padding:18px; border-radius:10px; overflow-x:auto;
-    font-family:var(--mono); font-size:.8rem; line-height:1.55; max-height:640px; overflow-y:auto;
+    background:#12161c; color:#dfe6e4; padding:18px; border-radius:var(--radius); overflow-x:auto;
+    font-family:var(--mono); font-size:.8rem; line-height:1.6; max-height:640px; overflow-y:auto;
+    border-top:3px solid var(--swin-red); box-shadow:var(--shadow-card);
   }
-  .py-kw{color:#569cd6;} .py-str{color:#ce9178;} .py-com{color:#6a9955;} .py-fn{color:#dcdcaa;}
+  .py-kw{color:#f0a99d;} .py-str{color:#e8c07d;} .py-com{color:#6b7680;} .py-fn{color:#f1a79e;}
   .badge{
-    display:inline-block; font-size:.72rem; padding:2px 8px; border-radius:10px; background:var(--accent-bg);
-    color:var(--swin-red-dark); font-weight:600; margin-left:6px;
+    display:inline-block; font-family:var(--mono); font-size:.68rem; letter-spacing:.03em; padding:3px 9px;
+    border-radius:20px; background:var(--accent-bg); color:var(--swin-red-dark); font-weight:700;
+    margin-left:6px; text-transform:uppercase;
   }
-  footer{text-align:center; color:var(--ink-soft); font-size:.78rem; padding:20px;}
-  .required-flag{color:var(--swin-red); font-size:.75rem; margin-left:4px;}
+  footer{
+    text-align:center; color:var(--ink-faint); font-size:.76rem; padding:26px 20px 32px;
+    font-family:var(--mono); letter-spacing:.02em;
+  }
+  .required-flag{color:var(--pulse); font-size:.75rem; margin-left:4px; font-weight:700;}
   .toast{
     position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff;
     padding:10px 18px; border-radius:8px; font-size:.85rem; opacity:0; pointer-events:none; transition:.25s;
+    font-family:var(--mono); box-shadow:0 12px 32px -8px rgba(0,0,0,.4);
   }
   .toast.show{opacity:1;}
+
   table.feat-matrix{border-collapse:collapse; font-size:.78rem; white-space:nowrap;}
   table.feat-matrix th, table.feat-matrix td{
-    border:1px solid var(--line); padding:5px 7px; text-align:center;
+    border:1px solid var(--line); padding:6px 8px; text-align:center;
   }
   table.feat-matrix thead th{
-    background:var(--accent-bg); color:var(--swin-red-dark); font-weight:600; position:sticky; top:0;
+    background:var(--ink); color:#f1a79e; font-weight:600; position:sticky; top:0;
+    font-family:var(--mono); font-size:.72rem; letter-spacing:.03em; text-transform:uppercase;
   }
   table.feat-matrix td.chan-name{
-    text-align:left; font-weight:600; background:#fafafa; position:sticky; left:0;
+    text-align:left; font-weight:600; background:var(--paper); position:sticky; left:0;
+    font-family:var(--mono); font-size:.76rem;
   }
-  table.feat-matrix th:first-child{position:sticky; left:0; z-index:2; background:var(--accent-bg);}
-  table.feat-matrix input[type=checkbox]{cursor:pointer;}
+  table.feat-matrix th:first-child{position:sticky; left:0; z-index:2; background:var(--ink);}
+  table.feat-matrix input[type=checkbox]{cursor:pointer; accent-color:var(--swin-red);}
+  table.feat-matrix tbody tr:hover td{background:var(--accent-bg);}
+  table.feat-matrix tbody tr:hover td.chan-name{background:#f5d9d4;}
+
   .row-btn{
-    font-size:.7rem; padding:3px 8px; border-radius:5px; border:1px solid var(--line);
-    background:#fff; color:var(--ink-soft); cursor:pointer; font-weight:600;
+    font-family:var(--mono); font-size:.68rem; padding:4px 9px; border-radius:5px; border:1px solid var(--line);
+    background:#fff; color:var(--ink-soft); cursor:pointer; font-weight:600; letter-spacing:.02em;
   }
-  .row-btn:hover{border-color:var(--swin-red); color:var(--swin-red);}
+  .row-btn:hover{border-color:var(--swin-red); color:var(--swin-red-dark);}
+
   .folder-tree{
-    border:1px solid var(--line); border-radius:8px; max-height:420px; overflow-y:auto; background:#fafafa;
+    border:1px solid var(--line); border-radius:var(--radius-sm); max-height:420px; overflow-y:auto; background:var(--paper);
   }
-  .folder-tree .class-group{border-bottom:1px solid var(--line);}
-  .folder-tree .class-group:last-child{border-bottom:none;}
-  .folder-tree .class-header{
-    padding:8px 10px; font-weight:700; font-size:.82rem; background:#fff; color:var(--swin-red-dark);
-    display:flex; justify-content:space-between; cursor:pointer;
-  }
-  .folder-tree .class-header .count{font-weight:500; color:var(--ink-soft);}
-  .folder-tree .trial-list{display:none;}
-  .folder-tree .trial-list.open{display:block;}
   .folder-tree .trial-item{
-    padding:6px 10px 6px 20px; font-size:.8rem; cursor:pointer; border-top:1px solid #eee;
+    padding:8px 12px 8px 14px; font-size:.8rem; cursor:pointer; border-top:1px solid var(--line);
     display:flex; justify-content:space-between; align-items:center; gap:8px;
+    font-family:var(--mono); transition:background .1s;
   }
   .folder-tree .trial-item:first-child{border-top:none;}
   .trial-label-badge{
-    font-size:.7rem; padding:2px 8px; border-radius:10px; background:var(--ok); color:#fff;
+    font-family:var(--display); font-size:.68rem; padding:3px 10px; border-radius:20px; background:var(--ok); color:#fff;
     font-weight:600; white-space:nowrap; flex-shrink:0;
   }
-  .trial-label-badge.unlabelled{background:#ddd; color:var(--ink-soft);}
-  .folder-tree .trial-item:hover{background:var(--accent-bg);}
-  .folder-tree .trial-item.active{background:var(--swin-red); color:#fff;}
-  #previewChartContainer svg{width:100%; height:auto; display:block;}
+  .trial-label-badge.unlabelled{background:#dde3e0; color:var(--ink-soft);}
+  .folder-tree .trial-item:hover{background:#fff;}
+  .folder-tree .trial-item.active{background:var(--ink); color:#f7e4e1;}
+  .folder-tree .trial-item.active .trial-label-badge.unlabelled{background:#333d42; color:#b7c0c6;}
+
+  #previewChartContainer svg{width:100%; height:auto; display:block; background:var(--paper); border-radius:var(--radius-sm);}
   #previewColumnSelect{max-width:340px;}
+  #labelProgress{font-family:var(--mono); color:var(--swin-red-dark);}
+
+  /* scrollbars — webkit only, purely cosmetic */
+  ::-webkit-scrollbar{width:10px; height:10px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:var(--line-strong); border-radius:6px; border:2px solid var(--paper);}
+  ::-webkit-scrollbar-thumb:hover{background:var(--ink-faint);}
 </style>
 </head>
 <body>
 
 <header>
+  <p class="eyebrow">Signal-driven configuration tool</p>
   <h1>IMU/ Machine Learning Code Builder — SPH20011</h1>
   <p>Use this tool to assist you in programming your machine learning classification system - This is often an iterative approach to consider what type of algorithm may be best suited to detect your chosen movement. Consider this a starting point where you may need additional refinements depending on what specifically you are looking at</p>
+  <svg class="trace" viewBox="0 0 1200 54" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M0,30 L40,30 L55,10 L70,46 L85,18 L100,30 L160,30 L172,22 L184,38 L196,14 L208,42 L220,30 L300,30 L316,8 L332,44 L348,20 L364,30 L440,30 L452,26 L464,34 L476,12 L488,40 L500,30 L580,30 L596,16 L612,38 L628,24 L644,30 L720,30 L735,6 L750,46 L765,18 L780,30 L860,30 L872,24 L884,36 L896,14 L908,40 L920,30 L1000,30 L1016,10 L1032,44 L1048,20 L1064,30 L1140,30 L1155,26 L1170,34 L1185,20 L1200,30"/>
+  </svg>
 </header>
 
 <div class="wrap">
 
   <div class="card" id="previewCard">
-    <h2 style="margin:0 0 4px 0;">🔍 Preview &amp; label your trial data <span class="badge" style="margin-left:6px;">optional, runs in your browser</span></h2>
+    <h2 style="margin:0 0 4px 0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--swin-red); flex-shrink:0;"><path d="M2 12h4l2-7 4 14 2-9 3 5h5"/></svg> Preview &amp; label your trial data <span class="badge" style="margin-left:6px;">optional, runs in your browser</span></h2>
     <p class="sub">Point this at the parent folder containing your trial subfolders recorded using the WitMotion app - these should be copied from your phone.</p>
     <p class="sub">Expected structure: <code>ParentFolder/&lt;trial-id&gt;/*.txt</code> — WitMotion gives each recording its own subfolder (often timestamp-named). Click a trial to preview its signal, then assign it a classification label using the dropdown. When you're done, download <code>labels.csv</code> and upload it alongside your data in Drive — the generated script reads it to know which trial is which.</p>
 
     <input type="file" id="folderInput" webkitdirectory directory multiple style="display:none">
     <div class="row" style="align-items:center;">
-      <button class="btn-secondary" type="button" onclick="document.getElementById('folderInput').click()">📁 Choose parent folder</button>
+      <button class="btn-secondary icon-btn" type="button" onclick="document.getElementById('folderInput').click()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg> Choose parent folder</button>
       <span id="folderSummary" class="sub" style="margin:0;"></span>
     </div>
 
@@ -187,7 +274,7 @@
             <span id="labelProgress" class="sub" style="margin:0; font-weight:600;"></span>
           </div>
           <div id="trialListContainer" class="folder-tree"></div>
-          <button class="btn-primary" id="downloadLabelsBtn" style="margin-top:10px; width:100%;" onclick="downloadLabelsCsv()">⬇ Download labels.csv</button>
+          <button class="btn-primary icon-btn" id="downloadLabelsBtn" style="margin-top:10px; width:100%; justify-content:center;" onclick="downloadLabelsCsv()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 19h16"/></svg> Download labels.csv</button>
           <button class="btn-secondary" id="syncClassNamesBtn" style="margin-top:8px; width:100%;" onclick="syncAssignedLabelsToStep3()">Sync assigned labels to Step 3 →</button>
           <button class="btn-secondary" id="useDataFolderBtn" style="margin-top:8px; width:100%;" onclick="useDiscoveredDataFolder()">Use this as my Drive path →</button>
         </div>
@@ -436,7 +523,7 @@
 <script>
 // Maps our internal channel keys to the EXACT column headers found in the
 // uploaded WitMotion export (tab-delimited .txt, units baked into the header,
-// e.g. "AccX(g)", "AsX(°/s)"). If an export uses different headers,
+// e.g. "AccX(g)", "AsX(°/s)"). If a student's export uses different headers,
 // this is the single place to fix it — see COLUMN_MAP in the generated code.
 const CHANNEL_COL_MAP = {
   AccX:'AccX(g)',   AccY:'AccY(g)',   AccZ:'AccZ(g)',
@@ -872,7 +959,7 @@ plt.show()
 ${evalImportance && supportsImportance ? `# -------------------- FEATURE IMPORTANCE --------------------
 importances = pd.Series(model.feature_importances_, index=X.columns).sort_values(ascending=False)
 plt.figure(figsize=(8, max(4, 0.3*len(importances))))
-importances.plot(kind='barh', color='#e2001a')
+importances.plot(kind='barh', color='#a6291f')
 plt.gca().invert_yaxis()
 plt.title("Feature importance")
 plt.tight_layout()
@@ -1629,7 +1716,7 @@ function renderPreviewChart(){
 
   const svg = `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
     ${gridSvg}
-    <path d="${d}" fill="none" stroke="#e2001a" stroke-width="1.5"/>
+    <path d="${d}" fill="none" stroke="#a6291f" stroke-width="1.5"/>
     <text x="${padL}" y="${h-6}" font-size="10" fill="#888">sample 0</text>
     <text x="${w-padR}" y="${h-6}" font-size="10" fill="#888" text-anchor="end">sample ${n-1}</text>
     <text x="${w/2}" y="12" font-size="11" fill="#1c1c1e" text-anchor="middle" font-weight="600">${col}</text>
