@@ -1,0 +1,1678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IMU Classification Pipeline Builder — SPH20011</title>
+<style>
+  :root{
+    --swin-red:#e2001a;
+    --swin-red-dark:#a8000f;
+    --ink:#1c1c1e;
+    --ink-soft:#4a4a4d;
+    --line:#dfe0e3;
+    --panel:#ffffff;
+    --bg:#f4f5f7;
+    --accent-bg:#fdeceD;
+    --ok:#1f8a4c;
+    --mono:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg); color:var(--ink); line-height:1.5;
+  }
+  header{
+    background:linear-gradient(135deg,var(--swin-red),var(--swin-red-dark));
+    color:#fff; padding:28px 24px;
+  }
+  header h1{margin:0 0 6px 0; font-size:1.5rem;}
+  header p{margin:0; opacity:.92; font-size:.95rem; max-width:900px;}
+  .wrap{max-width:1200px; margin:0 auto; padding:24px;}
+  .grid{
+    display:grid; grid-template-columns: 1fr 1fr; gap:20px;
+  }
+  @media (max-width:900px){ .grid{grid-template-columns:1fr;} }
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    padding:18px 20px; margin-bottom:20px;
+  }
+  .card h2{
+    font-size:1.02rem; margin:0 0 4px 0; display:flex; align-items:center; gap:8px;
+  }
+  .card .step-num{
+    background:var(--swin-red); color:#fff; width:22px; height:22px; border-radius:50%;
+    display:inline-flex; align-items:center; justify-content:center; font-size:.75rem; flex-shrink:0;
+  }
+  .card .sub{color:var(--ink-soft); font-size:.85rem; margin:0 0 14px 0;}
+  fieldset{border:none; padding:0; margin:0 0 12px 0;}
+  legend{font-weight:600; font-size:.85rem; margin-bottom:6px; padding:0;}
+  label.opt{
+    display:flex; align-items:flex-start; gap:8px; padding:6px 8px; border-radius:6px;
+    font-size:.88rem; cursor:pointer; border:1px solid transparent;
+  }
+  label.opt:hover{background:var(--accent-bg);}
+  label.opt input{margin-top:3px;}
+  .row{display:flex; gap:12px; flex-wrap:wrap; align-items:center;}
+  .row > div{flex:1; min-width:160px;}
+  input[type=number], input[type=text], select{
+    width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:.88rem;
+    font-family:inherit; background:#fff;
+  }
+  select{cursor:pointer;}
+  small.hint{display:block; color:var(--ink-soft); font-size:.78rem; margin-top:4px;}
+  .radio-tabs{display:flex; gap:10px; margin-bottom:14px;}
+  .radio-tabs label{
+    flex:1; text-align:center; padding:12px; border:2px solid var(--line); border-radius:8px;
+    cursor:pointer; font-weight:600; font-size:.88rem; transition:.15s;
+  }
+  .radio-tabs input{display:none;}
+  .radio-tabs label:has(input:checked){
+    border-color:var(--swin-red); background:var(--accent-bg); color:var(--swin-red-dark);
+  }
+  .approach-panel{display:none;}
+  .approach-panel.active{display:block;}
+  .chip-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:4px 10px;}
+  .class-names{display:flex; flex-direction:column; gap:6px; margin-top:8px;}
+  .split-readout{
+    display:flex; justify-content:space-between; font-size:.82rem; color:var(--ink-soft); margin-top:4px;
+  }
+  input[type=range]{width:100%; accent-color:var(--swin-red);}
+  .feature-count{
+    background:var(--accent-bg); border:1px solid #f3c7c7; border-radius:6px; padding:8px 12px;
+    font-size:.85rem; margin-top:10px; color:var(--swin-red-dark); font-weight:600;
+  }
+  .generate-bar{
+    position:sticky; bottom:0; background:var(--panel); border-top:1px solid var(--line);
+    padding:14px 20px; display:flex; gap:12px; align-items:center; justify-content:flex-end;
+    margin-top:4px; border-radius:10px; box-shadow:0 -4px 12px rgba(0,0,0,.04);
+  }
+  button{
+    font-family:inherit; font-size:.9rem; font-weight:600; padding:10px 18px; border-radius:7px;
+    border:1px solid var(--swin-red); cursor:pointer; transition:.15s;
+  }
+  .btn-primary{background:var(--swin-red); color:#fff;}
+  .btn-primary:hover{background:var(--swin-red-dark);}
+  .btn-secondary{background:#fff; color:var(--swin-red); border:1px solid var(--line);}
+  .btn-secondary:hover{border-color:var(--swin-red);}
+  #outputSection{display:none;}
+  .output-head{
+    display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;
+  }
+  pre{
+    background:#1e1e1e; color:#dcdcdc; padding:18px; border-radius:10px; overflow-x:auto;
+    font-family:var(--mono); font-size:.8rem; line-height:1.55; max-height:640px; overflow-y:auto;
+  }
+  .py-kw{color:#569cd6;} .py-str{color:#ce9178;} .py-com{color:#6a9955;} .py-fn{color:#dcdcaa;}
+  .badge{
+    display:inline-block; font-size:.72rem; padding:2px 8px; border-radius:10px; background:var(--accent-bg);
+    color:var(--swin-red-dark); font-weight:600; margin-left:6px;
+  }
+  footer{text-align:center; color:var(--ink-soft); font-size:.78rem; padding:20px;}
+  .required-flag{color:var(--swin-red); font-size:.75rem; margin-left:4px;}
+  .toast{
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff;
+    padding:10px 18px; border-radius:8px; font-size:.85rem; opacity:0; pointer-events:none; transition:.25s;
+  }
+  .toast.show{opacity:1;}
+  table.feat-matrix{border-collapse:collapse; font-size:.78rem; white-space:nowrap;}
+  table.feat-matrix th, table.feat-matrix td{
+    border:1px solid var(--line); padding:5px 7px; text-align:center;
+  }
+  table.feat-matrix thead th{
+    background:var(--accent-bg); color:var(--swin-red-dark); font-weight:600; position:sticky; top:0;
+  }
+  table.feat-matrix td.chan-name{
+    text-align:left; font-weight:600; background:#fafafa; position:sticky; left:0;
+  }
+  table.feat-matrix th:first-child{position:sticky; left:0; z-index:2; background:var(--accent-bg);}
+  table.feat-matrix input[type=checkbox]{cursor:pointer;}
+  .row-btn{
+    font-size:.7rem; padding:3px 8px; border-radius:5px; border:1px solid var(--line);
+    background:#fff; color:var(--ink-soft); cursor:pointer; font-weight:600;
+  }
+  .row-btn:hover{border-color:var(--swin-red); color:var(--swin-red);}
+  .folder-tree{
+    border:1px solid var(--line); border-radius:8px; max-height:420px; overflow-y:auto; background:#fafafa;
+  }
+  .folder-tree .class-group{border-bottom:1px solid var(--line);}
+  .folder-tree .class-group:last-child{border-bottom:none;}
+  .folder-tree .class-header{
+    padding:8px 10px; font-weight:700; font-size:.82rem; background:#fff; color:var(--swin-red-dark);
+    display:flex; justify-content:space-between; cursor:pointer;
+  }
+  .folder-tree .class-header .count{font-weight:500; color:var(--ink-soft);}
+  .folder-tree .trial-list{display:none;}
+  .folder-tree .trial-list.open{display:block;}
+  .folder-tree .trial-item{
+    padding:6px 10px 6px 20px; font-size:.8rem; cursor:pointer; border-top:1px solid #eee;
+    display:flex; justify-content:space-between; align-items:center; gap:8px;
+  }
+  .folder-tree .trial-item:first-child{border-top:none;}
+  .trial-label-badge{
+    font-size:.7rem; padding:2px 8px; border-radius:10px; background:var(--ok); color:#fff;
+    font-weight:600; white-space:nowrap; flex-shrink:0;
+  }
+  .trial-label-badge.unlabelled{background:#ddd; color:var(--ink-soft);}
+  .folder-tree .trial-item:hover{background:var(--accent-bg);}
+  .folder-tree .trial-item.active{background:var(--swin-red); color:#fff;}
+  #previewChartContainer svg{width:100%; height:auto; display:block;}
+  #previewColumnSelect{max-width:340px;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>IMU Movement Classification — Pipeline Builder</h1>
+  <p>SPH20011 · Configure your WitMotion IMU analysis approach below, then generate a preliminary Python/Colab script scaffold to build your classifier from. This tool structures the pipeline — you'll still need to fill in your file paths, tune parameters, and interpret your results.</p>
+</header>
+
+<div class="wrap">
+
+  <div class="card" id="previewCard">
+    <h2 style="margin:0 0 4px 0;">🔍 Preview &amp; label your trial data <span class="badge" style="margin-left:6px;">optional, runs in your browser</span></h2>
+    <p class="sub">Point this at the parent folder containing your trial subfolders. Nothing is uploaded — files are read locally in your browser.</p>
+    <p class="sub">Expected structure: <code>ParentFolder/&lt;trial-id&gt;/*.txt</code> — WitMotion gives each recording its own subfolder (often timestamp-named), with no movement grouping. Click a trial to preview its signal, then assign it a movement label using the dropdown. When you're done, download <code>labels.csv</code> and upload it alongside your data in Drive — the generated script reads it to know which trial is which.</p>
+
+    <input type="file" id="folderInput" webkitdirectory directory multiple style="display:none">
+    <div class="row" style="align-items:center;">
+      <button class="btn-secondary" type="button" onclick="document.getElementById('folderInput').click()">📁 Choose parent folder</button>
+      <span id="folderSummary" class="sub" style="margin:0;"></span>
+    </div>
+
+    <div id="previewBody" style="display:none; margin-top:16px;">
+      <div class="grid" style="grid-template-columns: 300px 1fr; gap:16px;">
+        <div>
+          <div class="row" style="align-items:center; margin-bottom:8px;">
+            <span id="labelProgress" class="sub" style="margin:0; font-weight:600;"></span>
+          </div>
+          <div id="trialListContainer" class="folder-tree"></div>
+          <button class="btn-primary" id="downloadLabelsBtn" style="margin-top:10px; width:100%;" onclick="downloadLabelsCsv()">⬇ Download labels.csv</button>
+          <button class="btn-secondary" id="syncClassNamesBtn" style="margin-top:8px; width:100%;" onclick="syncAssignedLabelsToStep3()">Sync assigned labels to Step 3 →</button>
+          <button class="btn-secondary" id="useDataFolderBtn" style="margin-top:8px; width:100%;" onclick="useDiscoveredDataFolder()">Use this as my Drive path →</button>
+        </div>
+        <div>
+          <div class="row" style="align-items:flex-end;">
+            <div style="flex:2;">
+              <label style="font-weight:600; font-size:.85rem;">Data column to plot</label>
+              <select id="previewColumnSelect" onchange="renderPreviewChart()"></select>
+            </div>
+            <div style="flex:1;">
+              <label style="font-weight:600; font-size:.85rem;">Movement label for this trial</label>
+              <select id="trialLabelSelect" onchange="assignLabelToCurrentTrial()">
+                <option value="">— unlabelled —</option>
+              </select>
+            </div>
+          </div>
+          <div id="previewMeta" class="sub" style="margin:8px 0 4px 0;"></div>
+          <div id="previewChartContainer"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+
+    <!-- COLUMN 1 -->
+    <div>
+
+      <!-- STEP 1: APPROACH -->
+      <div class="card">
+        <h2><span class="step-num">1</span>Analysis approach &amp; channels</h2>
+        <p class="sub">Are you summarising each trial into a set of statistical features, or classifying the raw continuous waveform shape?</p>
+        <div class="radio-tabs">
+          <label><input type="radio" name="approach" value="feature" checked onchange="onApproachChange()">Feature-based</label>
+          <label><input type="radio" name="approach" value="continuous" onchange="onApproachChange()">Continuous waveform</label>
+        </div>
+
+        <fieldset style="margin-top:4px;">
+          <legend>WitMotion sensor channels <span class="required-flag">select at least 1</span></legend>
+          <p class="sub" style="margin-top:-2px;">Based on a real WitMotion export (tab-delimited <code>.txt</code>, units in the header, e.g. <code>AccX(g)</code>). Select the columns you want to use — the generated code reads your file exactly as WitMotion exports it.</p>
+          <div class="row" style="gap:18px; align-items:flex-start; flex-wrap:wrap;">
+            <div>
+              <small class="hint" style="font-weight:600; color:var(--ink);">Accelerometer (g)</small>
+              <div class="chip-grid" style="grid-template-columns:1fr;">
+                <label class="opt"><input type="checkbox" value="AccX" checked>AccX</label>
+                <label class="opt"><input type="checkbox" value="AccY" checked>AccY</label>
+                <label class="opt"><input type="checkbox" value="AccZ" checked>AccZ</label>
+              </div>
+            </div>
+            <div>
+              <small class="hint" style="font-weight:600; color:var(--ink);">Gyroscope (°/s)</small>
+              <div class="chip-grid" style="grid-template-columns:1fr;">
+                <label class="opt"><input type="checkbox" value="AsX" checked>AsX</label>
+                <label class="opt"><input type="checkbox" value="AsY" checked>AsY</label>
+                <label class="opt"><input type="checkbox" value="AsZ" checked>AsZ</label>
+              </div>
+            </div>
+            <div>
+              <small class="hint" style="font-weight:600; color:var(--ink);">Angle (°, fused)</small>
+              <div class="chip-grid" style="grid-template-columns:1fr;">
+                <label class="opt"><input type="checkbox" value="AngleX">AngleX</label>
+                <label class="opt"><input type="checkbox" value="AngleY">AngleY</label>
+                <label class="opt"><input type="checkbox" value="AngleZ">AngleZ</label>
+              </div>
+            </div>
+            <div>
+              <small class="hint" style="font-weight:600; color:var(--ink);">Magnetometer (µT)</small>
+              <div class="chip-grid" style="grid-template-columns:1fr;">
+                <label class="opt"><input type="checkbox" value="HX">HX</label>
+                <label class="opt"><input type="checkbox" value="HY">HY</label>
+                <label class="opt"><input type="checkbox" value="HZ">HZ</label>
+              </div>
+            </div>
+            <div>
+              <small class="hint" style="font-weight:600; color:var(--ink);">Quaternion</small>
+              <div class="chip-grid" style="grid-template-columns:1fr;">
+                <label class="opt"><input type="checkbox" value="Q0">Q0</label>
+                <label class="opt"><input type="checkbox" value="Q1">Q1</label>
+                <label class="opt"><input type="checkbox" value="Q2">Q2</label>
+                <label class="opt"><input type="checkbox" value="Q3">Q3</label>
+              </div>
+            </div>
+          </div>
+          <small class="hint">Trajectory/Speed columns are excluded here — WitMotion typically leaves these as <code>null</code> unless trajectory logging is explicitly enabled. If your export has different column headers, edit <code>COLUMN_MAP</code> at the top of the generated script.</small>
+        </fieldset>
+
+        <div id="panel-feature" class="approach-panel active">
+          <p class="sub" style="margin-top:10px;">Tick which statistics to compute for <em>each</em> channel individually — you don't have to use the same set for every channel (e.g. mean + RMS for AccX, but only max for AsZ). The table below expands automatically to match the channels you selected above.</p>
+          <div id="featureMatrixContainer"><p class="sub">Select at least one channel above to configure per-channel features.</p></div>
+          <div class="feature-count" id="featureCountReadout">0 total features per trial</div>
+        </div>
+
+        <div id="panel-continuous" class="approach-panel">
+          <div class="row" style="margin-top:10px;">
+            <div>
+              <label style="font-weight:600; font-size:.85rem;">Normalisation method</label>
+              <select id="normMethod">
+                <option value="minmax">Min–max scaling (0–1 per channel)</option>
+                <option value="zscore">Z-score standardisation</option>
+                <option value="resample">Resample to fixed length only (no amplitude scaling)</option>
+                <option value="minmax_resample" selected>Resample + min–max scaling (recommended)</option>
+              </select>
+              <small class="hint">Trials are rarely the same duration — resampling aligns them to a common number of time points before scaling.</small>
+            </div>
+          </div>
+          <div class="row" style="margin-top:12px;">
+            <div>
+              <label style="font-weight:600; font-size:.85rem;">Target samples per trial</label>
+              <input type="number" id="targetLen" value="200" min="20" max="2000">
+              <small class="hint">Fixed-length vector each trial is interpolated to.</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 2: ALGORITHM -->
+      <div class="card">
+        <h2><span class="step-num">2</span>Classification algorithm</h2>
+        <p class="sub">Options change depending on your approach above.</p>
+        <select id="algoFeature">
+          <option value="rf">Random Forest</option>
+          <option value="svm">Support Vector Machine (SVM)</option>
+          <option value="knn">k-Nearest Neighbours</option>
+          <option value="logreg">Logistic Regression</option>
+          <option value="gbc">Gradient Boosting</option>
+        </select>
+        <select id="algoContinuous" style="display:none;">
+          <option value="cnn1d">1D Convolutional Neural Network (Keras/TensorFlow)</option>
+          <option value="lstm">LSTM Recurrent Network (Keras/TensorFlow)</option>
+          <option value="dtwknn">DTW + k-Nearest Neighbours (dtaidistance)</option>
+        </select>
+      </div>
+
+      <!-- STEP 3: CLASSES -->
+      <div class="card">
+        <h2><span class="step-num">3</span>Classification classes</h2>
+        <p class="sub">What are you trying to distinguish between (e.g. movement types, fatigue states)?</p>
+        <div class="row">
+          <div>
+            <label style="font-weight:600; font-size:.85rem;">Number of classes</label>
+            <input type="number" id="numClasses" value="3" min="2" max="12" onchange="rebuildClassNames()">
+          </div>
+        </div>
+        <div class="class-names" id="classNameInputs"></div>
+      </div>
+
+    </div>
+
+    <!-- COLUMN 2 -->
+    <div>
+
+      <!-- STEP 4: SPLIT + VALIDATION -->
+      <div class="card">
+        <h2><span class="step-num">4</span>Train / test split &amp; validation</h2>
+        <div class="row">
+          <div style="flex:2;">
+            <label style="font-weight:600; font-size:.85rem;">Training set size</label>
+            <input type="range" id="splitSlider" min="50" max="90" value="75" oninput="updateSplitReadout()">
+            <div class="split-readout">
+              <span id="splitReadoutTrain">Train: 75%</span>
+              <span id="splitReadoutTest">Test: 25%</span>
+            </div>
+          </div>
+          <div>
+            <label style="font-weight:600; font-size:.85rem;">Random seed</label>
+            <input type="number" id="randomSeed" value="42">
+          </div>
+        </div>
+        <label class="opt" style="margin-top:12px;">
+          <input type="checkbox" id="stratify" checked>
+          Stratify split (preserve class proportions in train/test)
+        </label>
+        <label class="opt">
+          <input type="checkbox" id="useCV" checked onchange="toggleCVFolds()">
+          Also run k-fold cross-validation on the training set
+        </label>
+        <div class="row" id="cvFoldsRow">
+          <div>
+            <label style="font-weight:600; font-size:.85rem;">Number of folds</label>
+            <input type="number" id="cvFolds" value="5" min="2" max="10">
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 5: DATA / EVALUATION -->
+      <div class="card">
+        <h2><span class="step-num">5</span>Data source &amp; evaluation</h2>
+        <div class="row">
+          <div>
+            <label style="font-weight:600; font-size:.85rem;">Parent folder of trial data (Colab / Drive path)</label>
+            <input type="text" id="dataFolder" value="/content/drive/MyDrive/SPH20011_IMU_Trials">
+            <small class="hint">Contains one subfolder per trial (WitMotion's own export structure — no movement grouping). Each trial's class comes from the labels manifest below, not the folder name.</small>
+          </div>
+        </div>
+        <div class="row" style="margin-top:12px;">
+          <div>
+            <label style="font-weight:600; font-size:.85rem;">Labels manifest (Colab / Drive path)</label>
+            <input type="text" id="labelsFile" value="/content/drive/MyDrive/SPH20011_IMU_Trials/labels.csv">
+            <small class="hint">The <code>labels.csv</code> you downloaded from the preview tool above, uploaded to Drive. Two columns: <code>trial_folder,label</code>.</small>
+          </div>
+        </div>
+        <fieldset style="margin-top:12px;">
+          <legend>Evaluation outputs to include</legend>
+          <label class="opt"><input type="checkbox" id="evalAcc" checked disabled>Accuracy score <span class="badge">always included</span></label>
+          <label class="opt"><input type="checkbox" id="evalCM" checked>Confusion matrix (plot)</label>
+          <label class="opt"><input type="checkbox" id="evalReport" checked>Classification report (precision / recall / F1)</label>
+          <label class="opt"><input type="checkbox" id="evalImportance" checked>Feature importance plot <small>(feature-based, tree/GB models only)</small></label>
+          <label class="opt"><input type="checkbox" id="includeInference" checked onchange="toggleNewTrialsRow()">Include a section to classify new, unlabelled trials with the trained model</label>
+        </fieldset>
+        <div class="row" id="newTrialsRow" style="margin-top:10px;">
+          <div>
+            <label style="font-weight:600; font-size:.85rem;">Folder of new trials to classify (Colab / Drive path)</label>
+            <input type="text" id="newTrialsFolder" value="/content/drive/MyDrive/SPH20011_IMU_Trials_New">
+            <small class="hint">Same structure as your training data (one subfolder per trial) — but these don't need a labels.csv, since that's what the model will predict.</small>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="generate-bar">
+    <button class="btn-secondary" onclick="window.scrollTo({top:0,behavior:'smooth'})">Back to top</button>
+    <button class="btn-primary" onclick="generateCode()">Generate preliminary code →</button>
+  </div>
+
+
+  <div id="outputSection" class="card" style="margin-top:24px;">
+    <div class="output-head">
+      <h2 style="margin:0;">Your preliminary script</h2>
+      <div style="display:flex; gap:10px;">
+        <button class="btn-secondary" onclick="copyCode()">Copy to clipboard</button>
+        <button class="btn-primary" onclick="downloadCode()">Download .py</button>
+      </div>
+    </div>
+    <p class="sub">Paste this into a new Google Colab notebook cell. It's a scaffold, not a finished analysis — read the <code># TODO</code> comments carefully and adapt paths, labels, and parameters to your own dataset.</p>
+    <pre id="codeOutput"></pre>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">Copied to clipboard</div>
+
+<footer>SPH20011 · Clinical and Sports Movement Analysis — Pipeline Builder Tool</footer>
+
+<script>
+// Maps our internal channel keys to the EXACT column headers found in the
+// uploaded WitMotion export (tab-delimited .txt, units baked into the header,
+// e.g. "AccX(g)", "AsX(°/s)"). If a student's export uses different headers,
+// this is the single place to fix it — see COLUMN_MAP in the generated code.
+const CHANNEL_COL_MAP = {
+  AccX:'AccX(g)',   AccY:'AccY(g)',   AccZ:'AccZ(g)',
+  AsX:'AsX(°/s)',   AsY:'AsY(°/s)',   AsZ:'AsZ(°/s)',
+  AngleX:'AngleX(°)', AngleY:'AngleY(°)', AngleZ:'AngleZ(°)',
+  HX:'HX(uT)',      HY:'HY(uT)',      HZ:'HZ(uT)',
+  Q0:'Q0()',        Q1:'Q1()',        Q2:'Q2()',        Q3:'Q3()',
+};
+
+function onApproachChange(){
+  const approach = document.querySelector('input[name=approach]:checked').value;
+  document.getElementById('panel-feature').classList.toggle('active', approach==='feature');
+  document.getElementById('panel-continuous').classList.toggle('active', approach==='continuous');
+  document.getElementById('algoFeature').style.display = approach==='feature' ? 'block':'none';
+  document.getElementById('algoContinuous').style.display = approach==='continuous' ? 'block':'none';
+  if(approach==='feature') syncFeatureMatrix();
+}
+
+const STAT_DEFS = [
+  {key:'mean',   label:'Mean'},
+  {key:'std',    label:'Std'},
+  {key:'min',    label:'Min'},
+  {key:'max',    label:'Max'},
+  {key:'range',  label:'Range'},
+  {key:'rms',    label:'RMS'},
+  {key:'median', label:'Median'},
+  {key:'iqr',    label:'IQR'},
+  {key:'skew',   label:'Skew'},
+  {key:'kurt',   label:'Kurt.'},
+  {key:'zcr',    label:'ZCR'},
+  {key:'peaks',  label:'Peaks'},
+  {key:'energy', label:'Energy'},
+  {key:'domfreq',label:'Dom.Freq'},
+];
+const DEFAULT_STATS_FOR_NEW_CHANNEL = ['mean','std','rms'];
+let featureMatrixState = {}; // { channelName: Set(statKey, ...) }
+
+function getSelectedChannels(){
+  const boxes = document.querySelectorAll('fieldset input[type=checkbox]');
+  const chanVals = Object.keys(CHANNEL_COL_MAP);
+  return Array.from(boxes).filter(b=>chanVals.includes(b.value) && b.checked).map(b=>b.value);
+}
+
+
+function syncFeatureMatrix(){
+  const channels = getSelectedChannels();
+  Object.keys(featureMatrixState).forEach(ch=>{ if(!channels.includes(ch)) delete featureMatrixState[ch]; });
+  channels.forEach(ch=>{
+    if(!featureMatrixState[ch]) featureMatrixState[ch] = new Set(DEFAULT_STATS_FOR_NEW_CHANNEL);
+  });
+  renderFeatureMatrix(channels);
+  updateFeatureCount();
+}
+
+function renderFeatureMatrix(channels){
+  const container = document.getElementById('featureMatrixContainer');
+  if(channels.length===0){
+    container.innerHTML = '<p class="sub">Select at least one channel above to configure per-channel features.</p>';
+    return;
+  }
+  let html = '<div style="overflow-x:auto; max-height:320px; overflow-y:auto;"><table class="feat-matrix"><thead><tr><th>Channel</th>';
+  STAT_DEFS.forEach(s=>{ html += `<th>${s.label}</th>`; });
+  html += '<th></th></tr></thead><tbody>';
+  channels.forEach(ch=>{
+    html += `<tr><td class="chan-name">${ch}</td>`;
+    STAT_DEFS.forEach(s=>{
+      const checked = featureMatrixState[ch].has(s.key) ? 'checked' : '';
+      html += `<td><input type="checkbox" ${checked} onchange="toggleMatrixCell('${ch}','${s.key}', this.checked)"></td>`;
+    });
+    html += `<td><button type="button" class="row-btn" onclick="clearRow('${ch}')">Clear</button></td></tr>`;
+  });
+  html += '</tbody></table></div>';
+  container.innerHTML = html;
+}
+
+function toggleMatrixCell(ch, stat, checked){
+  if(!featureMatrixState[ch]) featureMatrixState[ch] = new Set();
+  if(checked) featureMatrixState[ch].add(stat); else featureMatrixState[ch].delete(stat);
+  updateFeatureCount();
+}
+
+function clearRow(ch){
+  featureMatrixState[ch] = new Set();
+  renderFeatureMatrix(getSelectedChannels());
+  updateFeatureCount();
+}
+
+function getFeatureMatrix(){
+  // Returns { channel: [statKey, ...] } for channels with at least one stat selected.
+  const out = {};
+  Object.entries(featureMatrixState).forEach(([ch, set])=>{
+    if(set.size>0) out[ch] = Array.from(set);
+  });
+  return out;
+}
+
+function updateFeatureCount(){
+  const matrix = getFeatureMatrix();
+  const channelsUsed = Object.keys(matrix).length;
+  const total = Object.values(matrix).reduce((sum, arr)=>sum+arr.length, 0);
+  document.getElementById('featureCountReadout').textContent =
+    channelsUsed===0
+      ? '0 total features per trial — tick at least one stat for at least one channel above'
+      : `${total} total feature(s) per trial, across ${channelsUsed} channel(s) — each channel can use a different set of statistics`;
+}
+
+function rebuildClassNames(presetNames){
+  const n = parseInt(document.getElementById('numClasses').value)||2;
+  const container = document.getElementById('classNameInputs');
+  container.innerHTML='';
+  for(let i=0;i<n;i++){
+    const inp = document.createElement('input');
+    inp.type='text'; inp.placeholder=`Class ${i+1} label (e.g. walk)`;
+    inp.value = (presetNames && presetNames[i]) ? presetNames[i] : `class_${i+1}`;
+    inp.className='class-name-input';
+    container.appendChild(inp);
+  }
+}
+
+function updateSplitReadout(){
+  const v = document.getElementById('splitSlider').value;
+  document.getElementById('splitReadoutTrain').textContent = `Train: ${v}%`;
+  document.getElementById('splitReadoutTest').textContent = `Test: ${100-v}%`;
+}
+
+function toggleCVFolds(){
+  document.getElementById('cvFoldsRow').style.display = document.getElementById('useCV').checked ? 'flex':'none';
+}
+
+function toggleNewTrialsRow(){
+  document.getElementById('newTrialsRow').style.display = document.getElementById('includeInference').checked ? 'flex':'none';
+}
+
+// init
+rebuildClassNames();
+syncFeatureMatrix();
+const CHANNEL_VALUES = Object.keys(CHANNEL_COL_MAP);
+document.querySelectorAll('fieldset input[type=checkbox]').forEach(cb=>{
+  if(CHANNEL_VALUES.includes(cb.value)) cb.addEventListener('change', syncFeatureMatrix);
+});
+
+function getClassNames(){
+  return Array.from(document.querySelectorAll('.class-name-input')).map(i=>i.value.trim()||'unlabelled');
+}
+
+function pyList(arr){ return '[' + arr.map(a=>`'${a}'`).join(', ') + ']'; }
+
+function generateCode(){
+  const approach = document.querySelector('input[name=approach]:checked').value;
+  const channels = getSelectedChannels();
+  const classNames = getClassNames();
+  const trainPct = parseInt(document.getElementById('splitSlider').value);
+  const testFrac = (100-trainPct)/100;
+  const seed = document.getElementById('randomSeed').value || 42;
+  const stratify = document.getElementById('stratify').checked;
+  const useCV = document.getElementById('useCV').checked;
+  const cvFolds = document.getElementById('cvFolds').value || 5;
+  const dataFolder = document.getElementById('dataFolder').value || '/content/drive/MyDrive/IMU_Trials';
+  const labelsFile = document.getElementById('labelsFile').value || (dataFolder + '/labels.csv');
+  const evalCM = document.getElementById('evalCM').checked;
+  const evalReport = document.getElementById('evalReport').checked;
+  const evalImportance = document.getElementById('evalImportance').checked;
+  const includeInference = document.getElementById('includeInference').checked;
+  const newTrialsFolder = document.getElementById('newTrialsFolder').value || (dataFolder + '_New');
+
+  let code = '';
+
+  if(channels.length===0){
+    alert('Please select at least one IMU channel before generating code.');
+    return;
+  }
+
+  if(approach==='feature'){
+    const channelFeatureMap = getFeatureMatrix();
+    if(Object.keys(channelFeatureMap).length===0){ alert('Please tick at least one statistic for at least one channel in Step 1.'); return; }
+    const algo = document.getElementById('algoFeature').value;
+    code = buildFeatureScript({channelFeatureMap, classNames, algo, trainPct, testFrac, seed, stratify, useCV, cvFolds, dataFolder, labelsFile, evalCM, evalReport, evalImportance, includeInference, newTrialsFolder});
+  } else {
+    const algo = document.getElementById('algoContinuous').value;
+    const normMethod = document.getElementById('normMethod').value;
+    const targetLen = document.getElementById('targetLen').value || 200;
+    code = buildContinuousScript({channels, classNames, algo, normMethod, targetLen, trainPct, testFrac, seed, stratify, useCV, cvFolds, dataFolder, labelsFile, evalCM, evalReport, includeInference, newTrialsFolder});
+  }
+
+  document.getElementById('codeOutput').textContent = code;
+  document.getElementById('outputSection').style.display = 'block';
+  document.getElementById('outputSection').scrollIntoView({behavior:'smooth'});
+}
+
+// ---------- FEATURE-BASED SCRIPT BUILDER ----------
+function buildFeatureScript(cfg){
+  const {channelFeatureMap, classNames, algo, trainPct, testFrac, seed, stratify, useCV, cvFolds, dataFolder, labelsFile, evalCM, evalReport, evalImportance, includeInference, newTrialsFolder} = cfg;
+
+  const statExpr = {
+    mean:   "np.mean(sig)",
+    std:    "np.std(sig)",
+    min:    "np.min(sig)",
+    max:    "np.max(sig)",
+    range:  "np.ptp(sig)",
+    rms:    "np.sqrt(np.mean(sig**2))",
+    median: "np.median(sig)",
+    iqr:    "np.percentile(sig,75) - np.percentile(sig,25)",
+    skew:   "skew(sig)",
+    kurt:   "kurtosis(sig)",
+    zcr:    "np.sum(np.diff(np.sign(sig)) != 0) / len(sig)",
+    peaks:  "len(find_peaks(sig)[0])",
+    energy: "np.sum(sig**2)",
+    domfreq:"dominant_frequency(sig, fs=SAMPLING_RATE_HZ)",
+  };
+
+  const channels = Object.keys(channelFeatureMap);
+  const allStatsUsed = new Set(Object.values(channelFeatureMap).flat());
+  const needsScipy = ['skew','kurt','peaks'].some(s=>allStatsUsed.has(s));
+  const needsFFT = allStatsUsed.has('domfreq');
+  const totalFeatures = Object.values(channelFeatureMap).reduce((n,arr)=>n+arr.length,0);
+
+  // Build one block per channel, since each channel can request a different set of stats.
+  // Each block resolves the real export column name via COLUMN_MAP (see CONFIG below).
+  const extractionBlock = channels.map(ch=>{
+    const statLines = channelFeatureMap[ch].map(s=>
+      `    feats["${ch}_${s}"] = ${statExpr[s]}`
+    ).join('\n');
+    return `    # --- ${ch}: ${channelFeatureMap[ch].join(', ')} ---
+    col = COLUMN_MAP["${ch}"]
+    if col not in df.columns:
+        raise ValueError(f"Column '{col}' not found — check COLUMN_MAP against your file's header row.")
+    sig = df[col].to_numpy(dtype=float)
+${statLines}`;
+  }).join('\n\n');
+
+  const featureSummaryComment = channels.map(ch=>`#   ${ch}: ${channelFeatureMap[ch].join(', ')}`).join('\n');
+  const columnMapBlock = channels.map(ch=>`    "${ch}": "${CHANNEL_COL_MAP[ch]}",`).join('\n');
+
+  const algoImportMap = {
+    rf:     "from sklearn.ensemble import RandomForestClassifier",
+    svm:    "from sklearn.svm import SVC",
+    knn:    "from sklearn.neighbors import KNeighborsClassifier",
+    logreg: "from sklearn.linear_model import LogisticRegression",
+    gbc:    "from sklearn.ensemble import GradientBoostingClassifier",
+  };
+  const algoInitMap = {
+    rf:     `RandomForestClassifier(n_estimators=200, random_state=RANDOM_SEED)`,
+    svm:    `SVC(kernel='rbf', C=1.0, probability=True, random_state=RANDOM_SEED)`,
+    knn:    `KNeighborsClassifier(n_neighbors=5)`,
+    logreg: `LogisticRegression(max_iter=1000, random_state=RANDOM_SEED)`,
+    gbc:    `GradientBoostingClassifier(n_estimators=200, random_state=RANDOM_SEED)`,
+  };
+  const algoNameMap = {rf:'Random Forest', svm:'SVM', knn:'k-NN', logreg:'Logistic Regression', gbc:'Gradient Boosting'};
+  const supportsImportance = ['rf','gbc'].includes(algo);
+
+  return `# =============================================================
+# IMU MOVEMENT CLASSIFICATION — FEATURE-BASED PIPELINE
+# Generated by the SPH20011 Pipeline Builder tool
+# Algorithm: ${algoNameMap[algo]}
+# Classes (${classNames.length}): ${classNames.join(', ')}
+# Features requested per channel (${totalFeatures} total):
+${featureSummaryComment}
+# =============================================================
+#
+# WORKFLOW OVERVIEW
+# 1. Record trials on the WitMotion app, export each trial to your phone/Drive.
+#    WitMotion exports a tab-delimited ".txt" file per trial, with a header row
+#    like: time, DeviceName, AccX(g), AccY(g), ..., Q0(), Q1(), Q2(), Q3(), ...
+#    Each trial gets its own subfolder (often timestamp-named) with NO movement
+#    grouping — so the class label can't be read from the folder structure.
+# 2. Use the browser-based preview tool to look at each trial's signal and
+#    assign it a movement label, then download labels.csv and upload it to
+#    Drive (LABELS_FILE below). Expected layout:
+#      DATA_FOLDER/
+#        20260817131456/
+#          20260817131456.txt
+#        20260817140212/
+#          20260817140212.txt
+#      LABELS_FILE (e.g. DATA_FOLDER/labels.csv):
+#        trial_folder,label
+#        20260817131456,walk
+#        20260817140212,run
+# 3. Run this script top to bottom in Google Colab.
+#
+# TODO: Mount your Google Drive and confirm DATA_FOLDER + LABELS_FILE point to your trials.
+
+from google.colab import drive
+drive.mount('/content/drive')
+
+import os
+import glob
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+${needsScipy ? "from scipy.stats import skew, kurtosis\nfrom scipy.signal import find_peaks" : ""}
+${needsFFT ? "\ndef dominant_frequency(sig, fs):\n    \"\"\"Return the dominant frequency (Hz) of a 1D signal via FFT.\"\"\"\n    n = len(sig)\n    freqs = np.fft.rfftfreq(n, d=1/fs)\n    mag = np.abs(np.fft.rfft(sig - np.mean(sig)))\n    if len(mag) <= 1:\n        return 0.0\n    return freqs[np.argmax(mag[1:]) + 1]\n" : ""}
+${algoImportMap[algo]}
+from sklearn.model_selection import train_test_split${useCV ? ", cross_val_score" : ""}
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.metrics import accuracy_score${evalReport ? ", classification_report" : ""}${evalCM ? ", confusion_matrix, ConfusionMatrixDisplay" : ""}
+
+# -------------------- CONFIG --------------------
+DATA_FOLDER = "${dataFolder}"          # TODO: confirm this path — one subfolder per trial
+LABELS_FILE = "${labelsFile}"          # TODO: confirm this path — "trial_folder,label" CSV from the preview tool
+CLASS_NAMES = ${pyList(classNames)}    # TODO: must exactly match the labels used in LABELS_FILE (case-insensitive)
+RANDOM_SEED = ${seed}
+TEST_SIZE = ${testFrac}                # ${Math.round((1-testFrac)*100)}% train / ${Math.round(testFrac*100)}% test
+SAMPLING_RATE_HZ = 50                  # TODO: placeholder — the script estimates the real rate below from timestamps
+STRATIFY_SPLIT = ${stratify ? 'True' : 'False'}
+TIME_COLUMN = "time"                   # WitMotion timestamp column, e.g. "2026-08-17T13:14:56.537"
+np.random.seed(RANDOM_SEED)
+
+# Maps our short feature names to the EXACT column headers in the WitMotion
+# export (as in the sample file this script was built from). If your export
+# uses different headers, fix them here — nowhere else needs to change.
+COLUMN_MAP = {
+${columnMapBlock}
+}
+
+def estimate_sampling_rate_hz(df, time_col=TIME_COLUMN):
+    """Rough sampling rate (Hz) estimated from consecutive timestamp differences."""
+    t = pd.to_datetime(df[time_col])
+    dt = t.diff().dt.total_seconds().dropna()
+    dt = dt[dt > 0]
+    return float(1.0 / dt.median()) if len(dt) else float("nan")
+
+# -------------------- LABEL EXTRACTION --------------------
+# Class labels can't be read from the folder structure (WitMotion gives every
+# trial its own subfolder with no movement grouping), so they come from a
+# manifest CSV instead — see LABELS_FILE above and the preview tool notes.
+_labels_df = pd.read_csv(LABELS_FILE)
+_label_lookup = dict(zip(_labels_df["trial_folder"].astype(str), _labels_df["label"].astype(str)))
+print(f"Loaded {len(_label_lookup)} label(s) from {LABELS_FILE}")
+
+def extract_label_from_path(filepath):
+    """
+    Look up this trial's label via its parent folder name (the trial ID)
+    in the labels manifest, then match it case-insensitively against
+    CLASS_NAMES. Returns None (and the trial is skipped) if the trial isn't
+    in the manifest, or its label doesn't match any entry in CLASS_NAMES.
+    """
+    trial_id = os.path.basename(os.path.dirname(filepath))
+    raw_label = _label_lookup.get(trial_id)
+    if raw_label is None:
+        return None
+    for label in CLASS_NAMES:
+        if label.lower() == raw_label.lower():
+            return label
+    return None
+
+# -------------------- FEATURE EXTRACTION --------------------
+# Note: each channel below uses its OWN set of statistics — they don't have
+# to match. Edit the stat lines directly here if you want to adjust further.
+def extract_features(df):
+    """Compute one feature vector (a dict) for a single trial's DataFrame."""
+    feats = {}
+${extractionBlock}
+    return feats
+
+# -------------------- BUILD DATASET --------------------
+# WitMotion exports tab-delimited ".txt" files by default (as in the sample
+# this script was built from). TODO: if yours are comma-separated ".csv"
+# instead, change the pattern below to "*.csv" and sep='\\t' to sep=','.
+trial_files = sorted(glob.glob(os.path.join(DATA_FOLDER, "**", "*.txt"), recursive=True))
+print(f"Found {len(trial_files)} trial file(s).")
+
+if trial_files:
+    _sample_df = pd.read_csv(trial_files[0], sep='\\t')
+    _est_hz = estimate_sampling_rate_hz(_sample_df)
+    print(f"Estimated sampling rate from '{os.path.basename(trial_files[0])}': {_est_hz:.1f} Hz")
+    print(f"SAMPLING_RATE_HZ above is set to {SAMPLING_RATE_HZ} Hz — update it if this differs.")
+
+rows = []
+labels = []
+for fp in trial_files:
+    label = extract_label_from_path(fp)
+    if label is None:
+        print(f"Skipping {fp}: parent folder does not match any entry in CLASS_NAMES")
+        continue
+    df = pd.read_csv(fp, sep='\\t')
+    try:
+        feats = extract_features(df)
+    except ValueError as e:
+        print(f"Skipping {fp}: {e}")
+        continue
+    rows.append(feats)
+    labels.append(label)
+
+X = pd.DataFrame(rows)
+y_raw = np.array(labels)
+
+print(f"Feature matrix shape: {X.shape}  (trials x features)")
+print(f"Features per trial: {X.shape[1]} (expected ${totalFeatures} — see feature list in header comment)")
+print("Class counts:\\n", pd.Series(y_raw).value_counts())
+
+# -------------------- ENCODE LABELS --------------------
+le = LabelEncoder()
+y = le.fit_transform(y_raw)
+
+# -------------------- TRAIN/TEST SPLIT --------------------
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y,
+    test_size=TEST_SIZE,
+    random_state=RANDOM_SEED,
+    stratify=y if STRATIFY_SPLIT else None
+)
+print(f"Train: {X_train.shape[0]} trials | Test: {X_test.shape[0]} trials")
+
+# -------------------- SCALE FEATURES --------------------
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# -------------------- MODEL --------------------
+model = ${algoInitMap[algo]}
+model.fit(X_train_scaled, y_train)
+
+${useCV ? `# -------------------- CROSS-VALIDATION (on training set) --------------------
+cv_scores = cross_val_score(model, X_train_scaled, y_train, cv=${cvFolds})
+print(f"${cvFolds}-fold CV accuracy: {cv_scores.mean():.3f} +/- {cv_scores.std():.3f}")
+` : ""}
+# -------------------- EVALUATE --------------------
+y_pred = model.predict(X_test_scaled)
+test_acc = accuracy_score(y_test, y_pred)
+print(f"Test accuracy: {test_acc:.3f}")
+
+${evalReport ? `print("\\nClassification report:")
+print(classification_report(y_test, y_pred, target_names=le.classes_))
+` : ""}
+${evalCM ? `cm = confusion_matrix(y_test, y_pred)
+disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=le.classes_)
+fig, ax = plt.subplots(figsize=(6,5))
+disp.plot(ax=ax, cmap='Reds', colorbar=False)
+plt.title("Confusion matrix — ${algoNameMap[algo]}")
+plt.tight_layout()
+plt.show()
+` : ""}
+${evalImportance && supportsImportance ? `# -------------------- FEATURE IMPORTANCE --------------------
+importances = pd.Series(model.feature_importances_, index=X.columns).sort_values(ascending=False)
+plt.figure(figsize=(8, max(4, 0.3*len(importances))))
+importances.plot(kind='barh', color='#e2001a')
+plt.gca().invert_yaxis()
+plt.title("Feature importance")
+plt.tight_layout()
+plt.show()
+` : (evalImportance ? `# NOTE: feature importance plotting was requested but ${algoNameMap[algo]}\n# does not expose .feature_importances_. Try Random Forest or Gradient\n# Boosting if you need this, or use permutation_importance instead:\n# from sklearn.inspection import permutation_importance\n` : "")}
+${includeInference ? `# -------------------- SAVE THE TRAINED MODEL --------------------
+# You need the model AND the scaler AND the label encoder to classify new
+# trials consistently — save all three so you can reload them later without
+# retraining (e.g. joblib.load('imu_model.joblib') in a fresh session).
+import joblib
+joblib.dump(model, 'imu_model.joblib')
+joblib.dump(scaler, 'imu_scaler.joblib')
+joblib.dump(le, 'imu_label_encoder.joblib')
+print("Saved model, scaler, and label encoder to /content/")
+
+# -------------------- CLASSIFY NEW, UNLABELLED TRIALS --------------------
+# Point this at trials with the SAME folder structure as your training data
+# (one subfolder per trial) — these do NOT need a labels.csv, since the
+# model is what tells you their class.
+NEW_TRIALS_FOLDER = "${newTrialsFolder}"  # TODO: confirm this path
+
+def classify_new_trial(filepath):
+    """Extract the same features used in training and predict a class for one new trial."""
+    df = pd.read_csv(filepath, sep='\\t')
+    feats = extract_features(df)
+    X_new = pd.DataFrame([feats])[X.columns]  # enforce identical column order to training
+    X_new_scaled = scaler.transform(X_new)
+    pred_idx = model.predict(X_new_scaled)[0]
+    pred_label = le.inverse_transform([pred_idx])[0]
+    confidence = None
+    if hasattr(model, "predict_proba"):
+        confidence = float(model.predict_proba(X_new_scaled)[0][pred_idx])
+    return pred_label, confidence
+
+new_trial_files = sorted(glob.glob(os.path.join(NEW_TRIALS_FOLDER, "**", "*.txt"), recursive=True))
+print(f"\\nFound {len(new_trial_files)} new trial(s) to classify.")
+
+predictions = []
+for fp in new_trial_files:
+    trial_id = os.path.basename(os.path.dirname(fp))
+    try:
+        pred_label, confidence = classify_new_trial(fp)
+    except ValueError as e:
+        print(f"Skipping {fp}: {e}")
+        continue
+    predictions.append({"trial_id": trial_id, "predicted_label": pred_label, "confidence": confidence})
+    conf_str = f" ({confidence:.1%} confidence)" if confidence is not None else ""
+    print(f"{trial_id}: {pred_label}{conf_str}")
+
+if predictions:
+    predictions_df = pd.DataFrame(predictions)
+    predictions_df.to_csv("predictions.csv", index=False)
+    print("\\nSaved predictions to predictions.csv — download it from the Colab file browser, "
+          "or review each prediction against the raw signal in the preview tool before trusting it.")
+` : ""}
+# -------------------- NEXT STEPS --------------------
+# TODO: Try alternative algorithms and compare test accuracy / CV scores.
+# TODO: Inspect misclassified trials — which classes are confused, and why?
+# TODO: Consider whether SAMPLING_RATE_HZ and feature choices suit your movement task.
+`;
+}
+
+// ---------- CONTINUOUS WAVEFORM SCRIPT BUILDER ----------
+function buildContinuousScript(cfg){
+  const {channels, classNames, algo, normMethod, targetLen, trainPct, testFrac, seed, stratify, useCV, cvFolds, dataFolder, labelsFile, evalCM, evalReport, includeInference, newTrialsFolder} = cfg;
+  const algoNameMap = {cnn1d:'1D CNN', lstm:'LSTM', dtwknn:'DTW + k-NN'};
+  const columnMapBlock = channels.map(ch=>`    "${ch}": "${CHANNEL_COL_MAP[ch]}",`).join('\n');
+
+  const normFuncBlock = {
+    minmax: `def normalise_trial(arr):
+    """Min-max scale each channel to [0, 1] (per-trial)."""
+    mn = arr.min(axis=0, keepdims=True)
+    mx = arr.max(axis=0, keepdims=True)
+    rng = np.where((mx - mn) == 0, 1, mx - mn)
+    return (arr - mn) / rng`,
+    zscore: `def normalise_trial(arr):
+    """Z-score standardise each channel (per-trial)."""
+    mu = arr.mean(axis=0, keepdims=True)
+    sd = np.where(arr.std(axis=0, keepdims=True) == 0, 1, arr.std(axis=0, keepdims=True))
+    return (arr - mu) / sd`,
+    resample: `def normalise_trial(arr):
+    """No amplitude scaling — resampling to fixed length happens separately."""
+    return arr`,
+    minmax_resample: `def normalise_trial(arr):
+    """Min-max scale each channel to [0, 1] (per-trial), after resampling."""
+    mn = arr.min(axis=0, keepdims=True)
+    mx = arr.max(axis=0, keepdims=True)
+    rng = np.where((mx - mn) == 0, 1, mx - mn)
+    return (arr - mn) / rng`,
+  }[normMethod];
+
+  let modelBlock = '';
+  let fitBlock = '';
+  let evalBlock = '';
+  let imports = '';
+  let inferenceBlock = '';
+
+  if(algo==='cnn1d' || algo==='lstm'){
+    imports = `import tensorflow as tf
+from tensorflow.keras import layers, models
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import accuracy_score${evalReport ? ", classification_report" : ""}${evalCM ? ", confusion_matrix, ConfusionMatrixDisplay" : ""}`;
+
+    const layerBlock = algo==='cnn1d' ? `    model = models.Sequential([
+        layers.Input(shape=(TARGET_LEN, N_CHANNELS)),
+        layers.Conv1D(32, kernel_size=5, activation='relu', padding='same'),
+        layers.MaxPooling1D(2),
+        layers.Conv1D(64, kernel_size=5, activation='relu', padding='same'),
+        layers.MaxPooling1D(2),
+        layers.GlobalAveragePooling1D(),
+        layers.Dense(64, activation='relu'),
+        layers.Dropout(0.3),
+        layers.Dense(N_CLASSES, activation='softmax'),
+    ])` : `    model = models.Sequential([
+        layers.Input(shape=(TARGET_LEN, N_CHANNELS)),
+        layers.LSTM(64, return_sequences=True),
+        layers.LSTM(32),
+        layers.Dense(32, activation='relu'),
+        layers.Dropout(0.3),
+        layers.Dense(N_CLASSES, activation='softmax'),
+    ])`;
+
+    modelBlock = `def build_model(TARGET_LEN, N_CHANNELS, N_CLASSES):
+${layerBlock}
+    model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+    return model
+
+model = build_model(TARGET_LEN, N_CHANNELS, N_CLASSES)
+model.summary()`;
+
+    fitBlock = `history = model.fit(
+    X_train, y_train,
+    validation_split=0.15,
+    epochs=50,
+    batch_size=16,
+    verbose=1
+)
+
+# -------------------- TRAINING CURVES --------------------
+plt.figure(figsize=(10,4))
+plt.subplot(1,2,1)
+plt.plot(history.history['accuracy'], label='train')
+plt.plot(history.history['val_accuracy'], label='val')
+plt.title('Accuracy'); plt.xlabel('Epoch'); plt.legend()
+plt.subplot(1,2,2)
+plt.plot(history.history['loss'], label='train')
+plt.plot(history.history['val_loss'], label='val')
+plt.title('Loss'); plt.xlabel('Epoch'); plt.legend()
+plt.tight_layout()
+plt.show()`;
+
+    evalBlock = `# -------------------- EVALUATE --------------------
+test_loss, test_acc = model.evaluate(X_test, y_test, verbose=0)
+print(f"Test accuracy: {test_acc:.3f}")
+y_pred = np.argmax(model.predict(X_test), axis=1)
+
+${evalReport ? `print("\\nClassification report:")
+print(classification_report(y_test, y_pred, target_names=le.classes_))
+` : ""}
+${evalCM ? `cm = confusion_matrix(y_test, y_pred)
+disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=le.classes_)
+fig, ax = plt.subplots(figsize=(6,5))
+disp.plot(ax=ax, cmap='Reds', colorbar=False)
+plt.title("Confusion matrix — ${algoNameMap[algo]}")
+plt.tight_layout()
+plt.show()
+` : ""}`;
+
+    inferenceBlock = includeInference ? `# -------------------- SAVE THE TRAINED MODEL --------------------
+# You need the model AND the label encoder to classify new trials
+# consistently — save both so you can reload them later without retraining.
+model.save('imu_model.keras')
+import pickle
+with open('imu_label_encoder.pkl', 'wb') as f:
+    pickle.dump(le, f)
+print("Saved model to imu_model.keras and label encoder to imu_label_encoder.pkl")
+
+# -------------------- CLASSIFY NEW, UNLABELLED TRIALS --------------------
+# Point this at trials with the SAME folder structure as your training data
+# (one subfolder per trial) — these do NOT need a labels.csv, since the
+# model is what tells you their class.
+NEW_TRIALS_FOLDER = "${newTrialsFolder}"  # TODO: confirm this path
+
+def classify_new_trial(filepath):
+    """Apply the same resampling/normalisation used in training and predict a class for one new trial."""
+    df = pd.read_csv(filepath, sep='\\t')
+    missing = [c for c in real_columns if c not in df.columns]
+    if missing:
+        raise ValueError(f"missing columns {missing}")
+    arr = df[real_columns].to_numpy(dtype=float)
+    arr = resample_trial(arr)
+    arr = normalise_trial(arr)
+    arr = arr[np.newaxis, ...]  # add the batch dimension the model expects
+    probs = model.predict(arr, verbose=0)[0]
+    pred_idx = int(np.argmax(probs))
+    pred_label = le.inverse_transform([pred_idx])[0]
+    confidence = float(probs[pred_idx])
+    return pred_label, confidence
+
+new_trial_files = sorted(glob.glob(os.path.join(NEW_TRIALS_FOLDER, "**", "*.txt"), recursive=True))
+print(f"\\nFound {len(new_trial_files)} new trial(s) to classify.")
+
+predictions = []
+for fp in new_trial_files:
+    trial_id = os.path.basename(os.path.dirname(fp))
+    try:
+        pred_label, confidence = classify_new_trial(fp)
+    except ValueError as e:
+        print(f"Skipping {fp}: {e}")
+        continue
+    predictions.append({"trial_id": trial_id, "predicted_label": pred_label, "confidence": confidence})
+    print(f"{trial_id}: {pred_label} ({confidence:.1%} confidence)")
+
+if predictions:
+    predictions_df = pd.DataFrame(predictions)
+    predictions_df.to_csv("predictions.csv", index=False)
+    print("\\nSaved predictions to predictions.csv — download it from the Colab file browser, "
+          "or review each prediction against the raw signal in the preview tool before trusting it.")
+` : "";
+
+  } else { // dtwknn
+    imports = `# TODO: first-time setup in Colab — uncomment the line below and run once:
+# !pip install dtaidistance -q
+
+from dtaidistance import dtw
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import accuracy_score${evalReport ? ", classification_report" : ""}${evalCM ? ", confusion_matrix, ConfusionMatrixDisplay" : ""}`;
+
+    modelBlock = `def dtw_distance_multichannel(a, b):
+    """Sum of per-channel DTW distances between two (T, C) trials."""
+    return sum(dtw.distance_fast(a[:, c].astype(np.double), b[:, c].astype(np.double))
+               for c in range(a.shape[1]))
+
+def dtw_knn_predict(X_train, y_train, X_query, k=5):
+    """Classify each query trial by majority vote of its k nearest (DTW) training trials."""
+    preds = []
+    for q in X_query:
+        dists = np.array([dtw_distance_multichannel(q, t) for t in X_train])
+        nearest_idx = np.argsort(dists)[:k]
+        nearest_labels = y_train[nearest_idx]
+        vals, counts = np.unique(nearest_labels, return_counts=True)
+        preds.append(vals[np.argmax(counts)])
+    return np.array(preds)
+
+K_NEIGHBOURS = 5`;
+
+    fitBlock = `# DTW + k-NN is a lazy learner — there's no separate "training" step,
+# prediction happens directly against the stored training trials.
+print("Model ready — DTW distances are computed at prediction time (this can be slow for large datasets).")`;
+
+    evalBlock = `# -------------------- EVALUATE --------------------
+y_pred = dtw_knn_predict(X_train, y_train, X_test, k=K_NEIGHBOURS)
+test_acc = accuracy_score(y_test, y_pred)
+print(f"Test accuracy: {test_acc:.3f}")
+
+${evalReport ? `print("\\nClassification report:")
+print(classification_report(y_test, y_pred, target_names=le.classes_))
+` : ""}
+${evalCM ? `cm = confusion_matrix(y_test, y_pred)
+disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=le.classes_)
+fig, ax = plt.subplots(figsize=(6,5))
+disp.plot(ax=ax, cmap='Reds', colorbar=False)
+plt.title("Confusion matrix — ${algoNameMap[algo]}")
+plt.tight_layout()
+plt.show()
+` : ""}`;
+
+    inferenceBlock = includeInference ? `# -------------------- SAVE FOR LATER REUSE --------------------
+# DTW + k-NN is a lazy learner — there's no trained model to save, only the
+# reference trials it compares new trials against. Save X_train/y_train/le
+# so you can classify new trials later without re-running the split.
+import joblib
+joblib.dump({"X_train": X_train, "y_train": y_train, "classes": le.classes_}, 'imu_dtw_reference.joblib')
+print("Saved reference trials to imu_dtw_reference.joblib")
+
+# -------------------- CLASSIFY NEW, UNLABELLED TRIALS --------------------
+# Point this at trials with the SAME folder structure as your training data
+# (one subfolder per trial) — these do NOT need a labels.csv, since the
+# model is what tells you their class.
+NEW_TRIALS_FOLDER = "${newTrialsFolder}"  # TODO: confirm this path
+
+def classify_new_trial(filepath):
+    """Apply the same resampling/normalisation used in training and predict a class for one new trial."""
+    df = pd.read_csv(filepath, sep='\\t')
+    missing = [c for c in real_columns if c not in df.columns]
+    if missing:
+        raise ValueError(f"missing columns {missing}")
+    arr = df[real_columns].to_numpy(dtype=float)
+    arr = resample_trial(arr)
+    arr = normalise_trial(arr)
+    pred_idx = dtw_knn_predict(X_train, y_train, arr[np.newaxis, ...], k=K_NEIGHBOURS)[0]
+    pred_label = le.inverse_transform([pred_idx])[0]
+    return pred_label, None  # DTW + k-NN doesn't produce a probability score
+
+new_trial_files = sorted(glob.glob(os.path.join(NEW_TRIALS_FOLDER, "**", "*.txt"), recursive=True))
+print(f"\\nFound {len(new_trial_files)} new trial(s) to classify.")
+print("Note: DTW distance is computed against every training trial for each new trial — this can be slow for large datasets.")
+
+predictions = []
+for fp in new_trial_files:
+    trial_id = os.path.basename(os.path.dirname(fp))
+    try:
+        pred_label, _ = classify_new_trial(fp)
+    except ValueError as e:
+        print(f"Skipping {fp}: {e}")
+        continue
+    predictions.append({"trial_id": trial_id, "predicted_label": pred_label})
+    print(f"{trial_id}: {pred_label}")
+
+if predictions:
+    predictions_df = pd.DataFrame(predictions)
+    predictions_df.to_csv("predictions.csv", index=False)
+    print("\\nSaved predictions to predictions.csv — download it from the Colab file browser, "
+          "or review each prediction against the raw signal in the preview tool before trusting it.")
+` : "";
+  }
+
+  return `# =============================================================
+# IMU MOVEMENT CLASSIFICATION — CONTINUOUS WAVEFORM PIPELINE
+# Generated by the SPH20011 Pipeline Builder tool
+# Algorithm: ${algoNameMap[algo]}
+# Classes (${classNames.length}): ${classNames.join(', ')}
+# Channels used: ${channels.join(', ')}
+# Normalisation: ${normMethod}
+# =============================================================
+#
+# WORKFLOW OVERVIEW
+# 1. Record trials on the WitMotion app, export each trial to your phone/Drive.
+#    WitMotion exports a tab-delimited ".txt" file per trial, with a header row
+#    like: time, DeviceName, AccX(g), AccY(g), ..., Q0(), Q1(), Q2(), Q3(), ...
+#    Each trial gets its own subfolder (often timestamp-named) with NO movement
+#    grouping — so the class label can't be read from the folder structure.
+# 2. Use the browser-based preview tool to look at each trial's signal and
+#    assign it a movement label, then download labels.csv and upload it to
+#    Drive (LABELS_FILE below). Expected layout:
+#      DATA_FOLDER/
+#        20260817131456/
+#          20260817131456.txt
+#        20260817140212/
+#          20260817140212.txt
+#      LABELS_FILE (e.g. DATA_FOLDER/labels.csv):
+#        trial_folder,label
+#        20260817131456,walk
+#        20260817140212,run
+# 3. Trials will vary in duration — each is resampled to a fixed number
+#    of time points (TARGET_LEN) before being fed to the model.
+# 4. Run this script top to bottom in Google Colab.
+#
+# TODO: Mount your Google Drive and confirm DATA_FOLDER + LABELS_FILE point to your trials.
+
+from google.colab import drive
+drive.mount('/content/drive')
+
+import os
+import glob
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+${imports}
+
+# -------------------- CONFIG --------------------
+DATA_FOLDER = "${dataFolder}"          # TODO: confirm this path — one subfolder per trial
+LABELS_FILE = "${labelsFile}"          # TODO: confirm this path — "trial_folder,label" CSV from the preview tool
+CLASS_NAMES = ${pyList(classNames)}    # TODO: must exactly match the labels used in LABELS_FILE (case-insensitive)
+CHANNELS = ${pyList(channels)}         # internal channel keys, in the order used for the model input
+RANDOM_SEED = ${seed}
+TEST_SIZE = ${testFrac}
+TARGET_LEN = ${targetLen}              # samples per trial after resampling
+N_CHANNELS = len(CHANNELS)
+N_CLASSES = len(CLASS_NAMES)
+STRATIFY_SPLIT = ${stratify ? 'True' : 'False'}
+TIME_COLUMN = "time"                   # WitMotion timestamp column, e.g. "2026-08-17T13:14:56.537"
+np.random.seed(RANDOM_SEED)
+tf.random.set_seed(RANDOM_SEED) if 'tf' in dir() else None
+
+# Maps our short channel names to the EXACT column headers in the WitMotion
+# export (as in the sample file this script was built from). If your export
+# uses different headers, fix them here — nowhere else needs to change.
+COLUMN_MAP = {
+${columnMapBlock}
+}
+
+def estimate_sampling_rate_hz(df, time_col=TIME_COLUMN):
+    """Rough sampling rate (Hz) estimated from consecutive timestamp differences."""
+    t = pd.to_datetime(df[time_col])
+    dt = t.diff().dt.total_seconds().dropna()
+    dt = dt[dt > 0]
+    return float(1.0 / dt.median()) if len(dt) else float("nan")
+
+# -------------------- LABEL EXTRACTION --------------------
+# Class labels can't be read from the folder structure (WitMotion gives every
+# trial its own subfolder with no movement grouping), so they come from a
+# manifest CSV instead — see LABELS_FILE above and the preview tool notes.
+_labels_df = pd.read_csv(LABELS_FILE)
+_label_lookup = dict(zip(_labels_df["trial_folder"].astype(str), _labels_df["label"].astype(str)))
+print(f"Loaded {len(_label_lookup)} label(s) from {LABELS_FILE}")
+
+def extract_label_from_path(filepath):
+    """
+    Look up this trial's label via its parent folder name (the trial ID)
+    in the labels manifest, then match it case-insensitively against
+    CLASS_NAMES. Returns None (and the trial is skipped) if the trial isn't
+    in the manifest, or its label doesn't match any entry in CLASS_NAMES.
+    """
+    trial_id = os.path.basename(os.path.dirname(filepath))
+    raw_label = _label_lookup.get(trial_id)
+    if raw_label is None:
+        return None
+    for label in CLASS_NAMES:
+        if label.lower() == raw_label.lower():
+            return label
+    return None
+
+# -------------------- RESAMPLE TO FIXED LENGTH --------------------
+def resample_trial(arr, target_len=TARGET_LEN):
+    """Linearly interpolate a (T, C) array to (target_len, C)."""
+    original_idx = np.linspace(0, 1, arr.shape[0])
+    target_idx = np.linspace(0, 1, target_len)
+    resampled = np.zeros((target_len, arr.shape[1]))
+    for c in range(arr.shape[1]):
+        resampled[:, c] = np.interp(target_idx, original_idx, arr[:, c])
+    return resampled
+
+# -------------------- NORMALISATION --------------------
+${normFuncBlock}
+
+# -------------------- BUILD DATASET --------------------
+# WitMotion exports tab-delimited ".txt" files by default (as in the sample
+# this script was built from). TODO: if yours are comma-separated ".csv"
+# instead, change the pattern below to "*.csv" and sep='\\t' to sep=','.
+trial_files = sorted(glob.glob(os.path.join(DATA_FOLDER, "**", "*.txt"), recursive=True))
+print(f"Found {len(trial_files)} trial file(s).")
+
+if trial_files:
+    _sample_df = pd.read_csv(trial_files[0], sep='\\t')
+    _est_hz = estimate_sampling_rate_hz(_sample_df)
+    _est_duration_s = len(_sample_df) / _est_hz if _est_hz == _est_hz else float("nan")  # nan-safe check
+    print(f"Estimated sampling rate from '{os.path.basename(trial_files[0])}': {_est_hz:.1f} Hz "
+          f"(~{_est_duration_s:.1f}s for {len(_sample_df)} samples)")
+    print(f"TARGET_LEN is set to {TARGET_LEN} samples — reconsider this if your trial durations vary a lot.")
+
+real_columns = [COLUMN_MAP[c] for c in CHANNELS]
+
+trials = []
+labels = []
+for fp in trial_files:
+    label = extract_label_from_path(fp)
+    if label is None:
+        print(f"Skipping {fp}: parent folder does not match any entry in CLASS_NAMES")
+        continue
+    df = pd.read_csv(fp, sep='\\t')
+    missing = [c for c in real_columns if c not in df.columns]
+    if missing:
+        print(f"Skipping {fp}: missing columns {missing}")
+        continue
+    arr = df[real_columns].to_numpy(dtype=float)
+    arr = resample_trial(arr)
+    arr = normalise_trial(arr)
+    trials.append(arr)
+    labels.append(label)
+
+X = np.stack(trials)           # shape: (n_trials, TARGET_LEN, N_CHANNELS)
+y_raw = np.array(labels)
+print(f"Dataset shape: {X.shape}")
+print("Class counts:\\n", pd.Series(y_raw).value_counts())
+
+# -------------------- ENCODE LABELS --------------------
+le = LabelEncoder()
+y = le.fit_transform(y_raw)
+
+# -------------------- TRAIN/TEST SPLIT --------------------
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y,
+    test_size=TEST_SIZE,
+    random_state=RANDOM_SEED,
+    stratify=y if STRATIFY_SPLIT else None
+)
+print(f"Train: {X_train.shape[0]} trials | Test: {X_test.shape[0]} trials")
+
+# -------------------- MODEL --------------------
+${modelBlock}
+
+# -------------------- TRAIN --------------------
+${fitBlock}
+
+${evalBlock}
+
+${inferenceBlock}
+# -------------------- NEXT STEPS --------------------
+# TODO: Try alternative normalisation or resampling lengths and compare results.
+# TODO: Inspect misclassified trials — which classes are confused, and why?
+# TODO: If using CNN/LSTM, watch for overfitting (train acc >> val acc) — consider
+#       more dropout, fewer epochs, or more training trials.
+`;
+}
+
+function copyCode(){
+  const text = document.getElementById('codeOutput').textContent;
+  navigator.clipboard.writeText(text).then(()=>{
+    const t = document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'), 1800);
+  });
+}
+
+function downloadCode(){
+  const text = document.getElementById('codeOutput').textContent;
+  const blob = new Blob([text], {type:'text/x-python'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'imu_classification_pipeline.py';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// =====================================================================
+// DATA PREVIEW & LABELLING TOOL — reads local files in-browser via
+// webkitdirectory + FileReader. Nothing is uploaded anywhere.
+//
+// WitMotion gives each recording its own subfolder (often timestamp-named),
+// with no movement grouping — so there is one trial per subfolder, and the
+// student must assign each trial a label manually. Assignments are kept in
+// labelAssignments (trialId -> label) and exported as labels.csv, which the
+// generated Python script reads to resolve each trial's class.
+// =====================================================================
+let discoveredTrials = [];       // [{trialId, file}, ...]
+let discoveredRootName = '';
+let labelAssignments = {};       // { trialId: label }
+let knownLabels = [];            // grows as the student adds labels while previewing
+let currentPreviewParsed = null; // { headers, numericCols, columnData, rowCount, estHz }
+let currentTrialId = null;
+
+document.getElementById('folderInput').addEventListener('change', function(e){
+  const files = Array.from(e.target.files).filter(f => f.name.toLowerCase().endsWith('.txt'));
+  discoveredRootName = '';
+
+  // Group files by their immediate subfolder — that subfolder IS the trial.
+  const byTrial = {};
+  files.forEach(f=>{
+    const relPath = f.webkitRelativePath || f.name;
+    const parts = relPath.split('/');
+    if(!discoveredRootName) discoveredRootName = parts[0];
+    const trialId = parts.length >= 3 ? parts[1] : f.name.replace(/\.txt$/i, '');
+    // If a trial subfolder has more than one .txt file, keep the first
+    // (alphabetically) and ignore the rest for preview purposes.
+    if(!byTrial[trialId]) byTrial[trialId] = f;
+  });
+
+  discoveredTrials = Object.keys(byTrial).sort().map(trialId => ({trialId, file: byTrial[trialId]}));
+  labelAssignments = {};
+  currentTrialId = null;
+  currentPreviewParsed = null;
+
+  // Seed known labels from whatever's already in Step 3, so the dropdown
+  // isn't empty on first use.
+  if(knownLabels.length === 0){
+    const existing = getStep3ClassNames();
+    if(existing.length) knownLabels = existing.slice();
+  }
+
+  const totalTrials = discoveredTrials.length;
+  document.getElementById('folderSummary').textContent = totalTrials > 0
+    ? `Found ${totalTrials} trial folder(s) under "${discoveredRootName}".`
+    : 'No .txt files found in that folder — check you selected the right parent directory.';
+
+  if(totalTrials === 0){
+    document.getElementById('previewBody').style.display = 'none';
+    return;
+  }
+
+  renderTrialList();
+  document.getElementById('previewBody').style.display = 'block';
+});
+
+function getStep3ClassNames(){
+  return Array.from(document.querySelectorAll('.class-name-input')).map(i=>i.value.trim()).filter(Boolean);
+}
+
+function updateLabelProgress(){
+  const total = discoveredTrials.length;
+  const done = Object.values(labelAssignments).filter(Boolean).length;
+  document.getElementById('labelProgress').textContent = `${done} / ${total} trials labelled`;
+}
+
+function renderTrialList(){
+  const container = document.getElementById('trialListContainer');
+  container.innerHTML = '';
+  discoveredTrials.forEach(({trialId, file})=>{
+    const item = document.createElement('div');
+    item.className = 'trial-item' + (trialId === currentTrialId ? ' active' : '');
+    const label = labelAssignments[trialId];
+    item.innerHTML = `<span>${trialId}</span>` +
+      (label ? `<span class="trial-label-badge">${label}</span>` : `<span class="trial-label-badge unlabelled">unlabelled</span>`);
+    item.onclick = () => loadTrialForPreview(file, trialId);
+    container.appendChild(item);
+  });
+  updateLabelProgress();
+}
+
+function populateTrialLabelSelect(){
+  const select = document.getElementById('trialLabelSelect');
+  select.innerHTML = '<option value="">— unlabelled —</option>';
+  knownLabels.forEach(label=>{
+    const opt = document.createElement('option');
+    opt.value = label; opt.textContent = label;
+    select.appendChild(opt);
+  });
+  const addOpt = document.createElement('option');
+  addOpt.value = '__new__'; addOpt.textContent = '+ Add new label…';
+  select.appendChild(addOpt);
+  select.value = labelAssignments[currentTrialId] || '';
+}
+
+function assignLabelToCurrentTrial(){
+  const select = document.getElementById('trialLabelSelect');
+  if(select.value === '__new__'){
+    const newLabel = prompt('New movement label (e.g. walk):');
+    if(newLabel && newLabel.trim()){
+      const trimmed = newLabel.trim();
+      if(!knownLabels.includes(trimmed)) knownLabels.push(trimmed);
+      labelAssignments[currentTrialId] = trimmed;
+    }
+    populateTrialLabelSelect();
+  } else {
+    labelAssignments[currentTrialId] = select.value || null;
+  }
+  renderTrialList();
+}
+
+function loadTrialForPreview(file, trialId){
+  currentTrialId = trialId;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const parsed = parseWitMotionText(e.target.result);
+    currentPreviewParsed = parsed;
+
+    const select = document.getElementById('previewColumnSelect');
+    select.innerHTML = '';
+    parsed.numericCols.forEach(col=>{
+      const opt = document.createElement('option');
+      opt.value = col; opt.textContent = col;
+      select.appendChild(opt);
+    });
+    // Prefer AccX(g) as a sensible default if present, else first numeric column.
+    const preferred = parsed.numericCols.find(c => c.startsWith('AccX'));
+    select.value = preferred || parsed.numericCols[0] || '';
+
+    populateTrialLabelSelect();
+
+    document.getElementById('previewMeta').textContent =
+      `${trialId} (${file.name})  ·  ${parsed.rowCount} samples` +
+      (parsed.estHz ? `  ·  ~${parsed.estHz.toFixed(1)} Hz  ·  ~${(parsed.rowCount/parsed.estHz).toFixed(1)}s` : '');
+
+    renderPreviewChart();
+    renderTrialList();
+  };
+  reader.readAsText(file);
+}
+
+function parseWitMotionText(text){
+  const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+  if(lines.length < 2) return {headers:[], numericCols:[], columnData:{}, rowCount:0, estHz:null};
+  const headers = lines[0].split('\t');
+  const dataLines = lines.slice(1);
+
+  // Determine which columns are numeric by sampling a few rows.
+  // Explicitly exclude non-signal columns even if they parse as partially numeric
+  // (e.g. "Version()" values like "10080.1.22" parse as 10080.1 via parseFloat).
+  const EXCLUDED_COLS = new Set(['time', 'DeviceName', 'Version()']);
+  const sampleCount = Math.min(5, dataLines.length);
+  const numericCols = [];
+  headers.forEach((h, colIdx)=>{
+    if(EXCLUDED_COLS.has(h)) return;
+    let allNumeric = true;
+    for(let r=0; r<sampleCount; r++){
+      const cell = dataLines[r].split('\t')[colIdx];
+      if(cell === undefined || cell === 'null' || cell === '' || isNaN(parseFloat(cell))){
+        allNumeric = false; break;
+      }
+    }
+    if(allNumeric) numericCols.push(h);
+  });
+
+  const columnData = {};
+  numericCols.forEach(h => columnData[h] = []);
+  const timeIdx = headers.indexOf('time');
+  const times = [];
+
+  dataLines.forEach(line=>{
+    const cells = line.split('\t');
+    numericCols.forEach(h=>{
+      const idx = headers.indexOf(h);
+      columnData[h].push(parseFloat(cells[idx]));
+    });
+    if(timeIdx >= 0) times.push(cells[timeIdx]);
+  });
+
+  // Sampling-rate estimate: median of consecutive non-zero timestamp diffs.
+  // WitMotion's timestamp resolution is coarser than its true sample rate
+  // (the same millisecond is often repeated across several rows), so a
+  // naive (last-first)/count estimate overstates the rate. This mirrors the
+  // method used in the generated Python script, so both tools agree.
+  let estHz = null;
+  if(times.length > 1){
+    const parsedTimes = times.map(t => Date.parse(t)).filter(v => !isNaN(v));
+    const diffs = [];
+    for(let i=1;i<parsedTimes.length;i++){
+      const dt = (parsedTimes[i]-parsedTimes[i-1])/1000;
+      if(dt>0) diffs.push(dt);
+    }
+    if(diffs.length){
+      diffs.sort((a,b)=>a-b);
+      const mid = Math.floor(diffs.length/2);
+      const median = diffs.length%2 ? diffs[mid] : (diffs[mid-1]+diffs[mid])/2;
+      estHz = median > 0 ? 1/median : null;
+    }
+  }
+
+  return {headers, numericCols, columnData, rowCount: dataLines.length, estHz};
+}
+
+function renderPreviewChart(){
+  if(!currentPreviewParsed) return;
+  const col = document.getElementById('previewColumnSelect').value;
+  const values = currentPreviewParsed.columnData[col];
+  if(!values || values.length === 0){
+    document.getElementById('previewChartContainer').innerHTML = '<p class="sub">No numeric data to plot for this column.</p>';
+    return;
+  }
+
+  const w = 640, h = 260, padL = 55, padR = 20, padT = 16, padB = 30;
+  const n = values.length;
+  const minY = Math.min(...values), maxY = Math.max(...values);
+  const rangeY = (maxY - minY) || 1;
+  const xFor = i => padL + (i/(n-1)) * (w - padL - padR);
+  const yFor = v => padT + (1 - (v - minY)/rangeY) * (h - padT - padB);
+
+  let d = '';
+  for(let i=0;i<n;i++){
+    d += (i===0 ? 'M' : 'L') + xFor(i).toFixed(1) + ',' + yFor(values[i]).toFixed(1) + ' ';
+  }
+
+  // 4 horizontal gridlines with y-axis value labels.
+  const ticks = 4;
+  let gridSvg = '';
+  for(let t=0; t<=ticks; t++){
+    const v = minY + (rangeY * t/ticks);
+    const y = yFor(v);
+    gridSvg += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${w-padR}" y2="${y.toFixed(1)}" stroke="#e5e5e5" stroke-width="1"/>`;
+    gridSvg += `<text x="${padL-8}" y="${(y+4).toFixed(1)}" font-size="10" fill="#888" text-anchor="end">${v.toFixed(2)}</text>`;
+  }
+
+  const svg = `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
+    ${gridSvg}
+    <path d="${d}" fill="none" stroke="#e2001a" stroke-width="1.5"/>
+    <text x="${padL}" y="${h-6}" font-size="10" fill="#888">sample 0</text>
+    <text x="${w-padR}" y="${h-6}" font-size="10" fill="#888" text-anchor="end">sample ${n-1}</text>
+    <text x="${w/2}" y="12" font-size="11" fill="#1c1c1e" text-anchor="middle" font-weight="600">${col}</text>
+  </svg>`;
+  document.getElementById('previewChartContainer').innerHTML = svg;
+}
+
+function downloadLabelsCsv(){
+  const labelled = discoveredTrials.filter(t => labelAssignments[t.trialId]);
+  if(labelled.length === 0){ alert('No trials have been labelled yet.'); return; }
+  const unlabelledCount = discoveredTrials.length - labelled.length;
+  if(unlabelledCount > 0){
+    const proceed = confirm(`${unlabelledCount} trial(s) are still unlabelled and will be left out of labels.csv. Download anyway?`);
+    if(!proceed) return;
+  }
+  const rows = ['trial_folder,label'];
+  labelled.forEach(t => rows.push(`${t.trialId},${labelAssignments[t.trialId]}`));
+  const csv = rows.join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'labels.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function syncAssignedLabelsToStep3(){
+  const distinct = Array.from(new Set(Object.values(labelAssignments).filter(Boolean))).sort();
+  if(distinct.length === 0){ alert('No trials have been labelled yet — assign at least one label first.'); return; }
+  document.getElementById('numClasses').value = distinct.length;
+  rebuildClassNames(distinct);
+  document.querySelector('.generate-bar').scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+function useDiscoveredDataFolder(){
+  const guess = `/content/drive/MyDrive/${discoveredRootName}`;
+  document.getElementById('dataFolder').value = guess;
+  const labelsField = document.getElementById('labelsFile');
+  if(labelsField) labelsField.value = `${guess}/labels.csv`;
+  const field = document.getElementById('dataFolder');
+  field.focus();
+  field.select();
+}
+</script>
+</body>
+</html>
