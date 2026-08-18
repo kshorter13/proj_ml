@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>IMU Classification Pipeline Builder — SPH20011</title>
+<title>IMU/ Machine Learning Code Builder — SPH20011</title>
 <style>
   :root{
     --swin-red:#e2001a;
@@ -163,16 +163,16 @@
 <body>
 
 <header>
-  <h1>IMU Movement Classification — Pipeline Builder</h1>
-  <p>SPH20011 · Configure your WitMotion IMU analysis approach below, then generate a preliminary Python/Colab script scaffold to build your classifier from. This tool structures the pipeline — you'll still need to fill in your file paths, tune parameters, and interpret your results.</p>
+  <h1>IMU/ Machine Learning Code Builder — SPH20011</h1>
+  <p>Use this tool to assist you in programming your machine learning classification system - This is often an iterative approach to consider what type of algorithm may be best suited to detect your chosen movement. Consider this a starting point where you may need additional refinements depending on what specifically you are looking at</p>
 </header>
 
 <div class="wrap">
 
   <div class="card" id="previewCard">
     <h2 style="margin:0 0 4px 0;">🔍 Preview &amp; label your trial data <span class="badge" style="margin-left:6px;">optional, runs in your browser</span></h2>
-    <p class="sub">Point this at the parent folder containing your trial subfolders. Nothing is uploaded — files are read locally in your browser.</p>
-    <p class="sub">Expected structure: <code>ParentFolder/&lt;trial-id&gt;/*.txt</code> — WitMotion gives each recording its own subfolder (often timestamp-named), with no movement grouping. Click a trial to preview its signal, then assign it a movement label using the dropdown. When you're done, download <code>labels.csv</code> and upload it alongside your data in Drive — the generated script reads it to know which trial is which.</p>
+    <p class="sub">Point this at the parent folder containing your trial subfolders recorded using the WitMotion app - these should be copied from your phone.</p>
+    <p class="sub">Expected structure: <code>ParentFolder/&lt;trial-id&gt;/*.txt</code> — WitMotion gives each recording its own subfolder (often timestamp-named). Click a trial to preview its signal, then assign it a classification label using the dropdown. When you're done, download <code>labels.csv</code> and upload it alongside your data in Drive — the generated script reads it to know which trial is which.</p>
 
     <input type="file" id="folderInput" webkitdirectory directory multiple style="display:none">
     <div class="row" style="align-items:center;">
@@ -271,11 +271,11 @@
               </div>
             </div>
           </div>
-          <small class="hint">Trajectory/Speed columns are excluded here — WitMotion typically leaves these as <code>null</code> unless trajectory logging is explicitly enabled. If your export has different column headers, edit <code>COLUMN_MAP</code> at the top of the generated script.</small>
+          <small class="hint">Trajectory/Speed columns are excluded here — WitMotion typically leaves these as <code>null</code> unless trajectory logging is explicitly enabled within the app. If your export has different column headers, edit <code>COLUMN_MAP</code> at the top of the generated script.</small>
         </fieldset>
 
         <div id="panel-feature" class="approach-panel active">
-          <p class="sub" style="margin-top:10px;">Tick which statistics to compute for <em>each</em> channel individually — you don't have to use the same set for every channel (e.g. mean + RMS for AccX, but only max for AsZ). The table below expands automatically to match the channels you selected above.</p>
+          <p class="sub" style="margin-top:10px;">Tick which metrics to compute for <em>each</em> channel individually — you don't have to use the same set for every channel (e.g. mean + RMS for AccX, but only max for AsZ). The table below expands automatically to match the channels you selected above.</p>
           <div id="featureMatrixContainer"><p class="sub">Select at least one channel above to configure per-channel features.</p></div>
           <div class="feature-count" id="featureCountReadout">0 total features per trial</div>
         </div>
@@ -379,7 +379,7 @@
           <div>
             <label style="font-weight:600; font-size:.85rem;">Parent folder of trial data (Colab / Drive path)</label>
             <input type="text" id="dataFolder" value="/content/drive/MyDrive/SPH20011_IMU_Trials">
-            <small class="hint">Contains one subfolder per trial (WitMotion's own export structure — no movement grouping). Each trial's class comes from the labels manifest below, not the folder name.</small>
+            <small class="hint">Contains one subfolder per trial (WitMotion's own export structure). Each trial's class comes from the labels manifest below, not the folder name.</small>
           </div>
         </div>
         <div class="row" style="margin-top:12px;">
@@ -423,7 +423,7 @@
         <button class="btn-primary" onclick="downloadCode()">Download .py</button>
       </div>
     </div>
-    <p class="sub">Paste this into a new Google Colab notebook cell. It's a scaffold, not a finished analysis — read the <code># TODO</code> comments carefully and adapt paths, labels, and parameters to your own dataset.</p>
+    <p class="sub">Paste this into a new Google Colab notebook cell. It's a starting point for you to consider refining further — read the <code># TODO</code> comments carefully and adapt paths, labels, and parameters to your own dataset.</p>
     <pre id="codeOutput"></pre>
   </div>
 
@@ -431,12 +431,12 @@
 
 <div class="toast" id="toast">Copied to clipboard</div>
 
-<footer>SPH20011 · Clinical and Sports Movement Analysis — Pipeline Builder Tool</footer>
+<footer>SPH20011 - Dr Kath Shorter - 2026</footer>
 
 <script>
 // Maps our internal channel keys to the EXACT column headers found in the
 // uploaded WitMotion export (tab-delimited .txt, units baked into the header,
-// e.g. "AccX(g)", "AsX(°/s)"). If a student's export uses different headers,
+// e.g. "AccX(g)", "AsX(°/s)"). If an export uses different headers,
 // this is the single place to fix it — see COLUMN_MAP in the generated code.
 const CHANNEL_COL_MAP = {
   AccX:'AccX(g)',   AccY:'AccY(g)',   AccZ:'AccZ(g)',
@@ -1382,7 +1382,7 @@ function copyCode(){
 
 function downloadCode(){
   const text = document.getElementById('codeOutput').textContent;
-  const blob = new Blob([text], {type:'text/x-python'});
+  const blob = new Blob([text], {type:'text/x-python;charset=utf-8'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = 'imu_classification_pipeline.py';
